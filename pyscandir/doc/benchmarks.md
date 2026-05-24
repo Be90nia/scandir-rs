@@ -19,7 +19,7 @@ results to os.walk.
 |   Time [s] | Method                        |
 |------------|-------------------------------|
 |   0.016    | Count.collect                 |
-|   0.026    | Count(Ext).collect |
+|   0.026    | Count(Ext).collect            |
 
 #### Walk
 

@@ -125,7 +125,7 @@ Walk.collect(Ext)  **~42.2 times faster** than walkdir.WalkDir(Ext).
 
 #### Scandir linux-5.9
 
-|   Time [s] | Method                               |
+|   Time [s]    | Method                            |
 |---------------|-----------------------------------|
 |   0.707       | scan_dir.ScanDir                  |
 |   0.107       | Scandir.collect                   |
@@ -153,7 +153,7 @@ Scandir.collect(Ext) **~8.7 times faster** than scan_dir.ScanDir(Ext).
 
 #### Walk C:\Windows
 
-|   Time [s] | Method                               |
+|   Time [s]    | Method                            |
 |---------------|-----------------------------------|
 |  15.512       | walkdir.WalkDir                   |
 |   0.046       | Walk.collect                      |
