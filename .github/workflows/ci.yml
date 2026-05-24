@@ -96,18 +96,18 @@ jobs:
       - name: "Run zizmor"
         run: |
           zizmor .github/
+      - name: "Run rumdl"
+        run: |
+          rumdl check .
+      - name: "Run Ruff"
+        run: |
+          ruff check
       - name: "Run maturin (--release)"
         run: |
           cd pyscandir
           rustc --version --verbose
           uvx maturin==1.13.3 build --release --interpreter=python --out target/wheels
           uv pip install target/wheels/*.whl
-      - name: "Run Ruff"
-        run: |
-          ruff check
-      - name: "Run rumdl"
-        run: |
-          rumdl check .
       - name: "Run pytest"
         run: |
           cd pyscandir
