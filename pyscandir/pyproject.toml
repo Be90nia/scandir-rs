@@ -38,27 +38,27 @@ strip = true
 
 [tool.poetry.dependencies]
 python = '>=3.10'
-maturin = ">=1.12.4"
+maturin = ">=1.13.3"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=9.0.2"
+pytest = ">=9.0.3"
 
 [dependency-groups]
 dev = [
-    "pytest == 9.0.2",
+    "pytest == 9.0.3",
     "dirty-equals == 0.11",
-    "ruff == 0.15.2",
-    "zizmor == 1.22.0",
-    "typos == 1.43.5",
-    "rumdl == 0.1.29",
+    "ruff == 0.15.14",
+    "zizmor == 1.25.2",
+    "typos == 1.46.3",
+    "rumdl == 0.2.0",
 ]
 bench = [
     "oyaml",
     "pyyaml",
     "ryaml",
     "ruamel-yaml",
-    "polars == 1.35.2",
-    "altair == 6.0.0",
+    "polars == 1.41.0",
+    "altair == 6.1.0",
     "py-cpuinfo == 9.0.0",
     "vl-convert-python == 1.9.0.post1",
 ]

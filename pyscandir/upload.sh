@@ -1,1 +1,1 @@
-twine upload ../target/wheels/*
+twine upload $CARGO_TARGET_DIR/wheels/*
