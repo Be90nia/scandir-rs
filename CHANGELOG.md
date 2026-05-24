@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.9.5] - 2025-11-13
+## [2.9.7] - 2026-05-26
+
+### Improved
+
+- Return error for root DirEntry instead of throwing a panic, which crashes the application.
+- Use parking_lot Mutex to reduce locking overhead.
+
+### Changed
+
+- Update dependencies.
+- Refactor code. Put together what belongs together.
+
+## [2.9.6] - 2026-02-26
+
+### Changed
+
+- Update dependencies.
+
+## [2.9.5] - 2025-11-24
 
 ### Changed
 
