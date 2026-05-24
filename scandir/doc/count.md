@@ -42,8 +42,7 @@ For valid file patterns see module [glob](https://docs.rs/glob/0.3.0/glob/struct
 
 - `ReturnType::Base` calculate statistics for `dirs`, `files`, `slinks`, `size` and `usage`.
 - `ReturnType::Ext` in addition to above calculate statistcs `hlinks` and on Unix platforms
-
- `devices` and `pipes`.
+  `devices` and `pipes`.
 
 ### `skip_hidden(mut self, skip_hidden: bool) -> Self`
 

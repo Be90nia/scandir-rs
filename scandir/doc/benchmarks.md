@@ -1,6 +1,10 @@
 # Benchmarks
 
-Benchmarking code see [benches/benchmark.rs](../benches/benchmark.rs)
+Benchmarking code see
+
+- [benches/count.rs](../benches/count.rs)
+- [benches/scandir.rs](../benches/scandir.rs)
+- [benches/walk.rs](../benches/walk.rs)
 
 **(Ext)** means reading extended metadata to be able to identify hardlinks and special file types,
 like pipes, devices.
