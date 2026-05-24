@@ -1,13 +1,18 @@
-use std::fs::{self, Metadata};
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
+use std::{fs, thread};
 
 #[cfg(unix)]
 use expanduser::expanduser;
 
+use flume::{Receiver, Sender, unbounded};
 use glob_sl::{MatchOptions, Pattern};
+use parking_lot::Mutex;
 
-use crate::def::{Filter, Options};
+use crate::{DirEntryType, Filter, Options};
 
 pub fn check_and_expand_path<P: AsRef<Path>>(path_str: P) -> Result<PathBuf, Error> {
     #[cfg(unix)]
@@ -179,11 +184,7 @@ pub fn filter_direntry(
 }
 
 #[inline]
-pub fn filter_dir(
-    root_path_len: usize,
-    dir_entry: &jwalk_meta::DirEntry<((), Option<Result<Metadata, Error>>)>,
-    filter_ref: &Filter,
-) -> bool {
+pub fn filter_dir(root_path_len: usize, dir_entry: &DirEntryType, filter_ref: &Filter) -> bool {
     let mut key = dir_entry.parent_path.to_path_buf();
     key.push(dir_entry.file_name.clone().into_string().unwrap());
     let key = key
@@ -201,11 +202,8 @@ pub fn filter_dir(
 }
 
 #[inline]
-#[allow(clippy::type_complexity)]
 pub fn filter_children(
-    children: &mut Vec<
-        Result<jwalk_meta::DirEntry<((), Option<Result<Metadata, Error>>)>, jwalk_meta::Error>,
-    >,
+    children: &mut Vec<Result<DirEntryType, jwalk_meta::Error>>,
     filter: &Option<Filter>,
     root_path_len: usize,
 ) {
@@ -235,4 +233,35 @@ pub fn filter_children(
                 .unwrap_or(false)
         });
     }
+}
+
+#[allow(clippy::type_complexity)]
+pub fn start<T: Send + 'static + std::fmt::Debug>(
+    options: Options,
+    duration: Arc<Mutex<f64>>,
+    finished: Arc<AtomicBool>,
+    stop: Arc<AtomicBool>,
+    worker_thread: fn(DirEntryType, Options, Option<Filter>, Sender<T>, Arc<AtomicBool>),
+) -> Result<(Option<thread::JoinHandle<()>>, Option<Receiver<T>>), Error> {
+    let filter = create_filter(&options)?;
+    let (tx, rx) = unbounded();
+    stop.store(false, Ordering::Relaxed);
+    // Create root DirEntry here, so that errors are immediately returned
+    let dir_entry: DirEntryType = jwalk_meta::DirEntry::from_path(
+        0,
+        &options.root_path,
+        true,
+        true,
+        options.follow_links,
+        Arc::new(Vec::new()),
+    )?;
+    Ok((
+        Some(thread::spawn(move || {
+            let start_time = Instant::now();
+            worker_thread(dir_entry, options, filter, tx, stop);
+            *duration.lock() = start_time.elapsed().as_secs_f64();
+            finished.store(true, Ordering::Relaxed);
+        })),
+        Some(rx),
+    ))
 }

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::ReturnType;
+use crate::ReturnType;
 
 #[derive(Debug, Clone)]
 pub struct Options {

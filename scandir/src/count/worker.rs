@@ -2,37 +2,28 @@ use std::collections::HashSet;
 use std::fs::Metadata;
 use std::io::Error;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
 
-use flume::{Receiver, Sender, unbounded};
+use flume::{Receiver, Sender};
 use jwalk_meta::WalkDirGeneric;
+use parking_lot::Mutex;
 
-use crate::Statistics;
-use crate::common::{check_and_expand_path, create_filter, filter_children, get_root_path_len};
-use crate::def::{Filter, Options, ReturnType};
+use crate::common::{check_and_expand_path, filter_children, get_root_path_len};
+use crate::count::Statistics;
+use crate::{DirEntryType, Filter, Options, ReturnType, start};
 
 fn count_thread(
+    dir_entry: DirEntryType,
     options: Options,
     filter: Option<Filter>,
     tx: Sender<Statistics>,
     stop: Arc<AtomicBool>,
 ) {
     let mut statistics = Statistics::new();
-
-    let dir_entry: jwalk_meta::DirEntry<((), Option<Result<Metadata, Error>>)> =
-        jwalk_meta::DirEntry::from_path(
-            0,
-            &options.root_path,
-            true,
-            true,
-            options.follow_links,
-            Arc::new(Vec::new()),
-        )
-        .unwrap();
-
+    // If root path points to a file then return just this one entry
     if !dir_entry.file_type.is_dir() {
         if dir_entry.file_type.is_symlink() {
             statistics.slinks += 1;
@@ -338,7 +329,7 @@ impl Count {
 
     pub fn clear(&mut self) {
         self.statistics.clear();
-        *self.duration.lock().unwrap() = 0.0;
+        *self.duration.lock() = 0.0;
     }
 
     pub fn start(&mut self) -> Result<(), Error> {
@@ -346,20 +337,13 @@ impl Count {
             return Err(Error::other("Busy"));
         }
         self.clear();
-        let options = self.options.clone();
-        let filter = create_filter(&options)?;
-        let (tx, rx) = unbounded();
-        self.rx = Some(rx);
-        self.stop.store(false, Ordering::Relaxed);
-        let stop = self.stop.clone();
-        let duration = self.duration.clone();
-        let finished = self.finished.clone();
-        self.thr = Some(thread::spawn(move || {
-            let start_time = Instant::now();
-            count_thread(options, filter, tx, stop);
-            *duration.lock().unwrap() = start_time.elapsed().as_secs_f64();
-            finished.store(true, Ordering::Relaxed);
-        }));
+        (self.thr, self.rx) = start(
+            self.options.clone(),
+            self.duration.clone(),
+            self.finished.clone(),
+            self.stop.clone(),
+            count_thread,
+        )?;
         Ok(())
     }
 
@@ -421,7 +405,7 @@ impl Count {
     }
 
     pub fn duration(&mut self) -> f64 {
-        *self.duration.lock().unwrap()
+        *self.duration.lock()
     }
 
     pub fn finished(&self) -> bool {

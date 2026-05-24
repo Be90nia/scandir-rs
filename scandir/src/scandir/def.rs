@@ -3,8 +3,10 @@ use bincode::error::EncodeError;
 #[cfg(feature = "speedy")]
 use speedy::{Readable, Writable};
 
-use crate::ErrorsType;
-use crate::direntry::{DirEntry, DirEntryExt};
+use crate::{
+    ErrorsType,
+    direntry::{DirEntry, DirEntryExt},
+};
 
 #[cfg_attr(feature = "speedy", derive(Readable, Writable))]
 #[cfg_attr(

@@ -1,35 +1,30 @@
 use std::collections::HashSet;
-use std::fs::Metadata;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Instant, SystemTime};
+use std::time::SystemTime;
 
 #[cfg(feature = "bincode")]
 use bincode::error::EncodeError;
-use flume::{Receiver, Sender, unbounded};
+use flume::{Receiver, Sender};
 
 use jwalk_meta::WalkDirGeneric;
+use parking_lot::Mutex;
 
-use crate::Statistics;
-use crate::common::{check_and_expand_path, create_filter, filter_children, get_root_path_len};
-use crate::def::scandir::ScandirResults;
-use crate::def::{DirEntry, DirEntryExt, ErrorsType, Filter, Options, ReturnType, ScandirResult};
-
-#[derive(Debug, Clone)]
-pub enum Stats {
-    ScandirResult(ScandirResult),
-    Error(String),
-    Duration(f64),
-}
+use crate::count::Statistics;
+use crate::scandir::{ScandirResult, ScandirResults};
+use crate::{
+    DirEntry, DirEntryExt, DirEntryType, ErrorsType, Filter, Options, ReturnType,
+    check_and_expand_path, filter_children, get_root_path_len, start,
+};
 
 #[inline]
 fn create_entry(
     root_path_len: usize,
     return_type: &ReturnType,
-    dir_entry: &jwalk_meta::DirEntry<((), Option<Result<Metadata, Error>>)>,
+    dir_entry: &DirEntryType,
 ) -> ScandirResult {
     let file_type = dir_entry.file_type;
     let mut st_ctime: Option<SystemTime> = None;
@@ -139,7 +134,8 @@ fn create_entry(
     entry
 }
 
-fn entries_thread(
+fn worker_thread(
+    dir_entry: DirEntryType,
     options: Options,
     filter: Option<Filter>,
     tx: Sender<ScandirResult>,
@@ -147,17 +143,7 @@ fn entries_thread(
 ) {
     let root_path_len = get_root_path_len(&options.root_path);
     let return_type = options.return_type.clone();
-
-    let dir_entry = jwalk_meta::DirEntry::from_path(
-        0,
-        &options.root_path,
-        true,
-        true,
-        options.follow_links,
-        Arc::new(Vec::new()),
-    )
-    .unwrap();
-
+    // If root path points to a file then return just this one entry
     if !dir_entry.file_type.is_dir() {
         let _ = tx.send(create_entry(root_path_len, &return_type, &dir_entry));
         return;
@@ -350,34 +336,27 @@ impl Scandir {
 
     pub fn clear(&mut self) {
         self.entries.clear();
-        *self.duration.lock().unwrap() = 0.0;
+        *self.duration.lock() = 0.0;
     }
 
     pub fn start(&mut self) -> Result<(), Error> {
-        if self.busy() {
-            return Err(Error::other("Busy"));
-        }
         if self.options.return_type > ReturnType::Ext {
             return Err(Error::new(
                 ErrorKind::InvalidInput,
                 "Parameter return_type has invalid value",
             ));
         }
+        if self.busy() {
+            return Err(Error::other("Busy"));
+        }
         self.clear();
-        let options = self.options.clone();
-        let filter = create_filter(&options)?;
-        let (tx, rx) = unbounded();
-        self.rx = Some(rx);
-        self.stop.store(false, Ordering::Relaxed);
-        let stop = self.stop.clone();
-        let duration = self.duration.clone();
-        let finished = self.finished.clone();
-        self.thr = Some(thread::spawn(move || {
-            let start_time = Instant::now();
-            entries_thread(options, filter, tx, stop);
-            *duration.lock().unwrap() = start_time.elapsed().as_secs_f64();
-            finished.store(true, Ordering::Relaxed);
-        }));
+        (self.thr, self.rx) = start(
+            self.options.clone(),
+            self.duration.clone(),
+            self.finished.clone(),
+            self.stop.clone(),
+            worker_thread,
+        )?;
         Ok(())
     }
 
@@ -557,7 +536,7 @@ impl Scandir {
     }
 
     pub fn duration(&mut self) -> f64 {
-        *self.duration.lock().unwrap()
+        *self.duration.lock()
     }
 
     pub fn finished(&mut self) -> bool {

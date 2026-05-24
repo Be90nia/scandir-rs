@@ -1,18 +1,10 @@
+use std::fs::Metadata;
+
 use glob_sl::{MatchOptions, Pattern};
 
 pub type ErrorsType = Vec<(String, String)>; // Tuple with file path and error message
 
-pub mod count;
-pub use count::Statistics;
-pub mod direntry;
-pub mod options;
-pub mod walk;
-pub use direntry::{DirEntry, DirEntryExt};
-pub use options::Options;
-pub mod scandir;
-pub use scandir::ScandirResult;
-pub mod toc;
-pub use toc::Toc;
+pub type DirEntryType = jwalk_meta::DirEntry<((), Option<Result<Metadata, std::io::Error>>)>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Filter {
