@@ -10,7 +10,6 @@ homepage = "https://github.com/brmmm3/scandir-rs"
 readme = "README.md"
 keywords = ["fast", "scandir", "walk"]
 include = [
-    "Cargo.toml",
     "pyproject.toml",
     "src/*",
     "examples/*.py",
