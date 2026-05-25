@@ -1,0 +1,48 @@
+name: Publish on Test PyPi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  pypi-publish:
+    name: Upload release to Test PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/scandir-rs
+    steps:
+      - name: Download wheels
+        uses: robinraju/release-downloader@28fc21f50d76778e7023361aa1f863e717d3d56f # v1.13
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}        # Uses the tag of the release
+          fileName: "*.whl"                  # Download all wheels
+          out-file-path: dist
+          extract: false
+
+      - name: Download source distribution
+        uses: robinraju/release-downloader@28fc21f50d76778e7023361aa1f863e717d3d56f # v1.13
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}
+          fileName: "*.tar.gz"               # Download the sdist
+          out-file-path: dist
+          extract: false
+
+      - name: Show what we got
+        run: ls -R dist
+
+      - name: Publish on Test PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip_existing: true
+          verbose: true

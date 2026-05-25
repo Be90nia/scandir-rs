@@ -35,6 +35,20 @@ build-backend = "maturin"
 [tool.maturin]
 manylinux = "2_34"
 strip = true
+module-name = "scandir_rs"
+sdist-generator = "cargo"
+include = [
+    { path = "Cargo.toml", format = "sdist" },
+    { path = "Cargo.lock", format = "sdist" },
+    { path = "pyproject.toml", format = "sdist" },
+    { path = "README.md", format = "sdist" },
+    { path = "LICENSE", format = "sdist" },
+    { path = "CHANGELOG.md", format = "sdist" },
+    { path = "src/**/*", format = "sdist" },
+    { path = "tests/**/*", format = "sdist" },
+    { path = "examples/**/*", format = "sdist" },
+]
+exclude = ["../**", "**/target/**", "**/__pycache__/**"]
 
 [tool.poetry.dependencies]
 python = '>=3.10'

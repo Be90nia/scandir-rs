@@ -1,0 +1,42 @@
+name: Build sdist
+
+permissions: { }
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-sdist:
+    name: "build sdist"
+    runs-on: ubuntu-latest
+    permissions:
+      # Used to upload release artifacts
+      contents: write
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Add license files to sdist root
+        run: |
+          cp Cargo.toml Cargo.toml.bak
+          sed -i '/members = \["scandir", "pyscandir"\]/c\members = ["scandir"]\nexclude = ["pyscandir"]' Cargo.toml
+
+      - name: "Build sdist"
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          command: sdist
+          args: --out dist
+          rust-toolchain: nightly
+          working-directory: pyscandir
+
+      - name: Create/Release GitHub Release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        # zizmor: ignore[superfluous-actions]
+        with:
+          files: pyscandir/dist/*
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          fail_on_unmatched_files: true
