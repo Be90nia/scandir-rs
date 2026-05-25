@@ -23,6 +23,13 @@ For the API see:
 
 ## Installation
 
+Either you use a prebuilt version or you build it from source on your own.
+
+**Note:**
+There are prebuilt wheels available on github which are built for older CPUs which don't have AVX.
+Just choose the wheels with the suffix "-sse".
+Due to attestation restrictions it is not possible to upload these wheels on pypi.
+
 For building this wheel from source you need the tool `maturin`.
 
 Install `maturin`:

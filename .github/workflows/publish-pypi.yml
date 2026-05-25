@@ -16,18 +16,36 @@ jobs:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     environment:
-      name: pypi
+      name: testpypi
       url: https://pypi.org/p/scandir-rs
     steps:
-      - name: "Download all artifacts"
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      - name: Download wheels
+        uses: robinraju/release-downloader@28fc21f50d76778e7023361aa1f863e717d3d56f # v1.13
         with:
-          path: artifacts
-          pattern: scandir_rs-*
-          merge-multiple: true   # flattens everything into one dir
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}        # Uses the tag of the release
+          fileName: "*.whl"                  # Download all wheels
+          out-file-path: dist
+          extract: false
+
+      - name: Remove SSE wheels
+        run: rm -f dist/*-sse.whl
+
+      - name: Download source distribution
+        uses: robinraju/release-downloader@28fc21f50d76778e7023361aa1f863e717d3d56f # v1.13
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}
+          fileName: "*.tar.gz"               # Download the sdist
+          out-file-path: dist
+          extract: false
 
       - name: Show what we got
-        run: ls -R artifacts
+        run: ls -R dist
 
       - name: Publish on PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          repository-url: https://pypi.org/legacy/
+          skip_existing: true
+          verbose: true
