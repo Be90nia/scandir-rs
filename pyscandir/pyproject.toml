@@ -36,7 +36,6 @@ build-backend = "maturin"
 manylinux = "2_34"
 strip = true
 module-name = "scandir_rs"
-sdist-generator = "cargo"
 include = [
     { path = "Cargo.toml", format = "sdist" },
     { path = "Cargo.lock", format = "sdist" },
