@@ -2,12 +2,15 @@
 
 `scandir-rs` is a Rust project which provides a [Rust](https://github.com/brmmm3/scandir-rs/blob/master/scandir/README.md)
  and a [Python](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/README.md) module for
- directory iteration, like `os.walk()` or `os.scandir()`, but with more features and higher speed.
+ directory iteration, like `os.walk()` or `os.scandir()`, but with more features and **HIGHER** speed.
  Depending on the function call it yields a list of paths, tuple of lists grouped by their entry
  type or `DirEntry` objects that include file type and stat information along with the file name.
  Directory iteration is **many** times faster than `os.walk()`, `os.scandir()`, `walkdir` or
- `scan_dir` (see **benchmarks** for [Rust](https://github.com/brmmm3/scandir-rs/blob/master/scandir/doc/benchmarks.md)
- and [Python](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/doc/benchmarks.md)).
+ `scan_dir` (see **benchmarks** for [Rust benchmarks](https://github.com/brmmm3/scandir-rs/blob/master/scandir/doc/benchmarks.md)
+ and [Python benchmarks](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/doc/benchmarks.md)).
+
+<img src="scandir/doc/images/linux_walk_usr.png" width="48%" alt="walk benchmarks">
+<img src="scandir/doc/images/windows_scandir_linux-5.9.png" width="48%" alt="scandir benchmarks">
 
 The higher performance is achieved through parallelizing the file system access for reducing the
  access delay because of the overhead each file access has.

@@ -10,7 +10,8 @@ use pyo3::types::PyBytes;
 #[cfg(feature = "speedy")]
 use speedy::Writable;
 
-use crate::def::{ReturnType, Statistics};
+use crate::common::ReturnType;
+use crate::count::Statistics;
 
 #[pyclass]
 #[derive(Debug)]

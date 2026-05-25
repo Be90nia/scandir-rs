@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 #[cfg(any(feature = "speedy", feature = "bincode"))]
 use pyo3::types::PyBytes;
 
-use super::DirEntryExt;
+use crate::direntry::DirEntryExt;
 
 #[pyclass(from_py_object)]
 #[derive(Debug, Clone)]

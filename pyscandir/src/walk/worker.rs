@@ -1,37 +1,33 @@
+use std::fmt::Debug;
 use std::io::ErrorKind;
 use std::thread;
 use std::time::Duration;
 
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
-use pyo3::types::{PyBytes, PyDict, PyType};
+use pyo3::types::{PyBytes, PyType};
 use pyo3::{IntoPyObjectExt, prelude::*};
+use scandir::ErrorsType;
 
-use crate::def::{DirEntry, DirEntryExt, ReturnType, Statistics};
-use scandir::{ErrorsType, ScandirResult, ScandirResults};
-
-fn result2py(result: &ScandirResult, py: Python) -> Option<Py<PyAny>> {
-    match result {
-        ScandirResult::DirEntry(e) => Some(Py::new(py, DirEntry::from(e)).unwrap().into_any()),
-        ScandirResult::DirEntryExt(e) => {
-            Some(Py::new(py, DirEntryExt::from(e)).unwrap().into_any())
-        }
-        ScandirResult::Error((_path, _e)) => None,
-    }
-}
+use crate::common::ReturnType;
+use crate::count::Statistics;
+use crate::toc::Toc;
 
 #[pyclass]
 #[derive(Debug)]
-pub struct Scandir {
-    instance: scandir::Scandir,
-    entries: ScandirResults,
+pub struct Walk {
+    instance: scandir::Walk,
+    return_type: ReturnType,
+    // For iterator
+    entries: Vec<(String, scandir::Toc)>,
+    idx: usize,
 }
 
 #[pymethods]
-impl Scandir {
+impl Walk {
     #[allow(clippy::too_many_arguments)]
     #[new]
     #[pyo3(signature = (root_path, sorted=None, skip_hidden=None, max_depth=None, max_file_cnt=None, dir_include=None, dir_exclude=None, file_include=None, file_exclude=None, case_sensitive=None, follow_links=None, return_type=None, store=None))]
-    pub fn new(
+    fn new(
         root_path: &str,
         sorted: Option<bool>,
         skip_hidden: Option<bool>,
@@ -46,9 +42,9 @@ impl Scandir {
         return_type: Option<ReturnType>,
         store: Option<bool>,
     ) -> PyResult<Self> {
-        let return_type = return_type.unwrap_or(ReturnType::Base).from_object();
-        Ok(Scandir {
-            instance: match scandir::Scandir::new(root_path, store) {
+        let return_type = return_type.unwrap_or(ReturnType::Base);
+        Ok(Walk {
+            instance: match scandir::Walk::new(root_path, store) {
                 Ok(s) => s
                     .sorted(sorted.unwrap_or(false))
                     .skip_hidden(skip_hidden.unwrap_or(false))
@@ -60,7 +56,7 @@ impl Scandir {
                     .file_exclude(file_exclude)
                     .case_sensitive(case_sensitive.unwrap_or(false))
                     .follow_links(follow_links.unwrap_or(false))
-                    .return_type(return_type),
+                    .return_type(return_type.from_object()),
                 Err(e) => match e.kind() {
                     ErrorKind::NotFound => {
                         return Err(PyFileNotFoundError::new_err(e.to_string()));
@@ -70,7 +66,9 @@ impl Scandir {
                     }
                 },
             },
-            entries: ScandirResults::new(),
+            return_type,
+            entries: Vec::new(),
+            idx: usize::MAX,
         })
     }
 
@@ -81,6 +79,7 @@ impl Scandir {
     pub fn clear(&mut self) {
         self.instance.clear();
         self.entries.clear();
+        self.idx = usize::MAX;
     }
 
     pub fn start(&mut self) -> PyResult<()> {
@@ -104,14 +103,8 @@ impl Scandir {
         Ok(true)
     }
 
-    pub fn collect(&mut self, py: Python) -> PyResult<(Vec<Py<PyAny>>, ErrorsType)> {
-        let entries = py.detach(|| self.instance.collect())?;
-        let results = entries
-            .results
-            .iter()
-            .filter_map(|r| result2py(r, py))
-            .collect();
-        Ok((results, entries.errors))
+    pub fn collect(&mut self, py: Python) -> PyResult<Toc> {
+        Ok(Toc::from(&py.detach(|| self.instance.collect())?))
     }
 
     #[pyo3(signature = (only_new=None))]
@@ -125,37 +118,28 @@ impl Scandir {
     }
 
     #[pyo3(signature = (only_new=None))]
-    pub fn results(&mut self, only_new: Option<bool>, py: Python) -> (Vec<Py<PyAny>>, ErrorsType) {
-        let entries = self.instance.results(only_new.unwrap_or(true));
-        let results = entries
-            .results
-            .iter()
-            .filter_map(|e| result2py(e, py))
-            .collect();
-        (results, entries.errors)
-    }
-
-    #[pyo3(signature = (only_new=None))]
-    pub fn has_entries(&mut self, only_new: Option<bool>) -> bool {
-        self.instance.has_entries(only_new.unwrap_or(true))
-    }
-
-    #[pyo3(signature = (only_new=None))]
-    pub fn entries_cnt(&mut self, only_new: Option<bool>) -> usize {
-        self.instance.entries_cnt(only_new.unwrap_or(true))
-    }
-
-    #[pyo3(signature = (only_new=None))]
-    pub fn entries(&mut self, only_new: Option<bool>, py: Python) -> Vec<Py<PyAny>> {
-        self.instance
-            .entries(only_new.unwrap_or(true))
-            .iter()
-            .filter_map(|e| result2py(e, py))
-            .collect()
+    pub fn results(
+        &mut self,
+        only_new: Option<bool>,
+        py: Python,
+    ) -> PyResult<Vec<(String, Py<PyAny>)>> {
+        let mut results = Vec::new();
+        for result in self.instance.results(only_new.unwrap_or(false)) {
+            results.push((
+                result.0,
+                Py::new(py, Toc::from(&result.1)).unwrap().into_py_any(py)?,
+            ));
+        }
+        Ok(results)
     }
 
     pub fn has_errors(&mut self) -> bool {
         self.instance.has_errors()
+    }
+
+    #[getter]
+    pub fn duration(&mut self) -> f64 {
+        self.instance.duration()
     }
 
     pub fn errors_cnt(&mut self) -> usize {
@@ -165,29 +149,6 @@ impl Scandir {
     #[pyo3(signature = (only_new=None))]
     pub fn errors(&mut self, only_new: Option<bool>) -> ErrorsType {
         self.instance.errors(only_new.unwrap_or(true))
-    }
-
-    #[pyo3(signature = (only_new=None))]
-    pub fn as_dict(&mut self, only_new: Option<bool>, py: Python) -> PyResult<Py<PyAny>> {
-        let pyresults = PyDict::new(py);
-        let entries = self.instance.results(only_new.unwrap_or(true));
-        for entry in entries.results {
-            let _ = match entry {
-                ScandirResult::DirEntry(e) => pyresults.set_item(
-                    e.path.clone().into_py_any(py)?,
-                    Py::new(py, DirEntry::from(&e)).unwrap().into_any(),
-                ),
-                ScandirResult::DirEntryExt(e) => pyresults.set_item(
-                    e.path.clone().into_py_any(py)?,
-                    Py::new(py, DirEntryExt::from(&e)).unwrap().into_any(),
-                ),
-                ScandirResult::Error((path, e)) => pyresults.set_item(path.into_py_any(py)?, e),
-            };
-        }
-        for error in entries.errors {
-            let _ = pyresults.set_item(error.0.into_py_any(py)?, error.1.into_py_any(py)?);
-        }
-        Ok(pyresults.into_any().unbind())
     }
 
     #[cfg(feature = "speedy")]
@@ -233,11 +194,6 @@ impl Scandir {
     }
 
     #[getter]
-    pub fn duration(&mut self) -> f64 {
-        self.instance.duration()
-    }
-
-    #[getter]
     pub fn finished(&mut self) -> bool {
         self.instance.finished()
     }
@@ -272,42 +228,51 @@ impl Scandir {
     }
 
     fn __iter__(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        if slf.instance.busy() {
+        if slf.idx < usize::MAX {
             return Err(PyRuntimeError::new_err("Busy"));
         }
         slf.instance.start()?;
         slf.entries.clear();
+        slf.idx = 0;
         Ok(slf)
     }
 
     fn __next__(&mut self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         loop {
-            if let Some(entry) = self.entries.results.pop() {
-                match entry {
-                    ScandirResult::DirEntry(e) => {
-                        return Ok(Some(Py::new(py, DirEntry::from(&e)).unwrap().into_any()));
-                    }
-                    ScandirResult::DirEntryExt(e) => {
-                        return Ok(Some(Py::new(py, DirEntryExt::from(&e)).unwrap().into_any()));
-                    }
-                    ScandirResult::Error(error) => {
-                        return Ok(Some(error.into_py_any(py)?));
-                    }
+            if let Some((root_dir, toc)) = self.entries.get(self.idx) {
+                self.idx += 1;
+                if self.return_type == ReturnType::Base {
+                    return Ok(Some(
+                        (root_dir, toc.dirs.clone(), toc.files.clone()).into_py_any(py)?,
+                    ));
+                } else {
+                    return Ok(Some(
+                        (
+                            root_dir,
+                            toc.dirs.clone(),
+                            toc.files.clone(),
+                            toc.symlinks.clone(),
+                            toc.other.clone(),
+                            toc.errors.clone(),
+                        )
+                            .into_py_any(py)?,
+                    ));
                 }
-            }
-            if let Some(error) = self.entries.errors.pop() {
-                return Ok(Some(error.into_py_any(py)?));
-            }
-            let entries = self.instance.results(true);
-            if entries.is_empty() {
-                if !self.instance.busy() {
-                    break;
-                }
-                thread::sleep(Duration::from_millis(10));
             } else {
-                self.entries.extend(&entries);
+                self.entries.clear();
+                self.entries
+                    .extend_from_slice(&self.instance.results(true)[..]);
+                if self.entries.is_empty() {
+                    if !self.instance.busy() {
+                        break;
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                    continue;
+                }
+                self.idx = 0;
             }
         }
+        self.idx = usize::MAX;
         Ok(None)
     }
 

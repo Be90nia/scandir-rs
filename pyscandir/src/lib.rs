@@ -1,8 +1,10 @@
 use pyo3::prelude::*;
 
+mod common;
 mod count;
-mod def;
+mod direntry;
 mod scandir;
+mod toc;
 mod walk;
 
 /// scandir_rs is a directory iteration module like os.walk(), but with more features and higher speed. Depending on the function call
@@ -13,9 +15,11 @@ mod walk;
 #[pyo3(name = "scandir_rs")]
 fn init(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add_class::<def::ReturnType>()?;
+    m.add_class::<common::ReturnType>()?;
     m.add_class::<count::Count>()?;
+    m.add_class::<count::Statistics>()?;
     m.add_class::<walk::Walk>()?;
     m.add_class::<scandir::Scandir>()?;
+    m.add_class::<scandir::ScandirResult>()?;
     Ok(())
 }

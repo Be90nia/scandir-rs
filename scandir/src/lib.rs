@@ -19,7 +19,7 @@ extern crate serde_derive;
 mod common;
 pub use common::{
     DirEntryType, ErrorsType, Filter, ReturnType, check_and_expand_path, create_filter,
-    filter_children, get_root_path_len, start,
+    filter_children, filter_direntry, get_root_path_len, start,
 };
 mod direntry;
 pub use direntry::{DirEntry, DirEntryExt};
