@@ -412,6 +412,72 @@ jobs:
           name: wheels-windows-${{ matrix.platform.target }}
           path: pyscandir/dist/*.whl
 
+
+  windows-sse:
+    name: "windows-sse (${{ matrix.platform.runner }} / ${{ matrix.platform.target }})"
+    needs: [ tests, cargo-fmt, cargo-clippy ]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - {
+            runner: windows-latest,
+            target: x64,
+            interpreter: "3.10 3.11 3.12 3.13 3.14 pypy3.11"
+          }
+          - {
+            runner: windows-latest,
+            target: x86,
+            interpreter: "3.10 3.11 3.12 3.13 3.14"
+          }
+    steps:
+
+      - name: "Checkout"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: "Setup Python"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: 3.x
+          architecture: ${{ matrix.platform.target }}
+
+      - name: Install nightly Rust
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: nightly
+          components: rustc, cargo, rustfmt
+
+      - name: Enable sccache properly for nightly
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
+
+      - name: "Build wheels for older CPUs (SSE)"
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        env:
+          RUSTFLAGS: "-C target-cpu=x86-64-v2 -Zshare-generics=n"
+        with:
+          rust-toolchain: nightly
+          target: ${{ matrix.platform.target }}
+          args: ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
+          working-directory: pyscandir
+
+      - name: Add postfix to wheel name
+        run: |
+          for wheel in pyscandir/dist/*.whl; do
+            sudo mv "$wheel" "${wheel%.whl}-sse.whl"
+          done
+
+      - name: "Upload wheels"
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: wheels-linux-${{ matrix.platform.target }}-sse
+          path: pyscandir/dist/*.whl
+
   macos:
     name: "macos (${{ matrix.platform.runner }} / ${{ matrix.platform.target }})"
     needs: [ tests, cargo-fmt, cargo-clippy ]
