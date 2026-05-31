@@ -366,12 +366,14 @@ jobs:
           - {
             runner: windows-latest,
             target: x64,
-            interpreter: "3.10 3.11 3.12 3.13 3.14 pypy3.11"
+            interpreter: "3.10 3.11 3.12 3.13 3.14 pypy3.11",
+            maturin-args: "--release --out dist"
           }
           - {
             runner: windows-latest,
             target: x86,
-            interpreter: "3.10 3.11 3.12 3.13 3.14"
+            interpreter: "3.10 3.11 3.12 3.13 3.14",
+            maturin-args: "--release --out dist"
           }
     steps:
       - name: "Checkout"
@@ -402,7 +404,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter ${{ matrix.platform.interpreter }}
+          args: ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           working-directory: pyscandir
 
@@ -423,12 +425,14 @@ jobs:
           - {
             runner: windows-latest,
             target: x64,
-            interpreter: "3.10 3.11 3.12 3.13 3.14 pypy3.11"
+            interpreter: "3.10 3.11 3.12 3.13 3.14 pypy3.11",
+            maturin-args: "--release --out dist"
           }
           - {
             runner: windows-latest,
             target: x86,
-            interpreter: "3.10 3.11 3.12 3.13 3.14"
+            interpreter: "3.10 3.11 3.12 3.13 3.14",
+            maturin-args: "--release --out dist"
           }
     steps:
 
@@ -467,9 +471,10 @@ jobs:
           working-directory: pyscandir
 
       - name: Add postfix to wheel name
+        shell: bash
         run: |
           for wheel in pyscandir/dist/*.whl; do
-            sudo mv "$wheel" "${wheel%.whl}-sse.whl"
+            mv "$wheel" "${wheel%.whl}-sse.whl"
           done
 
       - name: "Upload wheels"
@@ -565,7 +570,7 @@ jobs:
     name: "Release"
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [ linux, musllinux, windows, macos, build-sdist, tests, cargo-clippy, cargo-fmt ]
+    needs: [ linux, musllinux, windows, macos, build-sdist, tests, cargo-clippy, cargo-fmt, linux-sse, windows-sse ]
     permissions:
       # Use to sign the release artifacts
       id-token: write
