@@ -17,3 +17,7 @@ dist/
 
 /venv
 pyscandir/poetry.lock
+
+.omo/
+graphify-out/
+bench_*.py
