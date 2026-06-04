@@ -1,10 +1,8 @@
-use std::fs::Metadata;
-
 use glob_sl::{MatchOptions, Pattern};
 
 pub type ErrorsType = Vec<(String, String)>; // Tuple with file path and error message
 
-pub type DirEntryType = jwalk_meta::DirEntry<((), Option<Result<Metadata, std::io::Error>>)>;
+pub type DirEntryType = jwalk_meta::DirEntry<((), ())>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Filter {
@@ -15,7 +13,7 @@ pub struct Filter {
     pub options: Option<MatchOptions>,
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ReturnType {
     Base,
     Ext,

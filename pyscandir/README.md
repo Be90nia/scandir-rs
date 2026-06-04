@@ -3,7 +3,7 @@
 The Python module is called `scandir_rs` and installable via `pip`. It is an alternative to
 `os.walk()` and `os.scandir()` with more features and higher speed. On Linux it is
 **3 - 11 times faster** and on Windows **6 - 70 time faster**
-(see [benchmarks](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/doc/benchmarks.md)).  
+(see [benchmarks](https://github.com/Be90nia/scandir-rs/blob/master/pyscandir/doc/benchmarks.md)).  
 It releases the GIL and the scanning is done in a background thread.
 With different methods intermediate results can be read.
 
@@ -17,9 +17,9 @@ If you are just interested in directory statistics you can use the `Count`.
 
 For the API see:
 
-- Class [Count](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/doc/count.md)
-- Class [Walk](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/doc/walk.md)
-- Class [Scandir](https://github.com/brmmm3/scandir-rs/blob/master/pyscandir/doc/scandir.md)
+- Class [Count](https://github.com/Be90nia/scandir-rs/blob/master/pyscandir/doc/count.md)
+- Class [Walk](https://github.com/Be90nia/scandir-rs/blob/master/pyscandir/doc/walk.md)
+- Class [Scandir](https://github.com/Be90nia/scandir-rs/blob/master/pyscandir/doc/scandir.md)
 
 ## Installation
 

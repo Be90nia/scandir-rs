@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::io::ErrorKind;
 use std::thread;
@@ -18,8 +19,8 @@ pub struct Walk {
     instance: scandir::Walk,
     return_type: ReturnType,
     // For iterator
-    entries: Vec<(String, scandir::Toc)>,
-    idx: usize,
+    entries: VecDeque<(String, scandir::Toc)>,
+    iterating: bool,
 }
 
 #[pymethods]
@@ -67,8 +68,8 @@ impl Walk {
                 },
             },
             return_type,
-            entries: Vec::new(),
-            idx: usize::MAX,
+            entries: VecDeque::new(),
+            iterating: false,
         })
     }
 
@@ -79,7 +80,7 @@ impl Walk {
     pub fn clear(&mut self) {
         self.instance.clear();
         self.entries.clear();
-        self.idx = usize::MAX;
+        self.iterating = false;
     }
 
     pub fn start(&mut self) -> PyResult<()> {
@@ -228,51 +229,48 @@ impl Walk {
     }
 
     fn __iter__(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        if slf.idx < usize::MAX {
+        if slf.iterating {
             return Err(PyRuntimeError::new_err("Busy"));
         }
         slf.instance.start()?;
         slf.entries.clear();
-        slf.idx = 0;
+        slf.iterating = true;
         Ok(slf)
     }
 
     fn __next__(&mut self, py: Python) -> PyResult<Option<Py<PyAny>>> {
         loop {
-            if let Some((root_dir, toc)) = self.entries.get(self.idx) {
-                self.idx += 1;
+            if let Some((root_dir, toc)) = self.entries.pop_front() {
                 if self.return_type == ReturnType::Base {
                     return Ok(Some(
-                        (root_dir, toc.dirs.clone(), toc.files.clone()).into_py_any(py)?,
+                        (root_dir, toc.dirs, toc.files).into_py_any(py)?,
                     ));
                 } else {
                     return Ok(Some(
                         (
                             root_dir,
-                            toc.dirs.clone(),
-                            toc.files.clone(),
-                            toc.symlinks.clone(),
-                            toc.other.clone(),
-                            toc.errors.clone(),
+                            toc.dirs,
+                            toc.files,
+                            toc.symlinks,
+                            toc.other,
+                            toc.errors,
                         )
                             .into_py_any(py)?,
                     ));
                 }
             } else {
-                self.entries.clear();
-                self.entries
-                    .extend_from_slice(&self.instance.results(true)[..]);
-                if self.entries.is_empty() {
+                let new_entries = self.instance.results(true);
+                if new_entries.is_empty() {
                     if !self.instance.busy() {
                         break;
                     }
                     thread::sleep(Duration::from_millis(10));
                     continue;
                 }
-                self.idx = 0;
+                self.entries.extend(new_entries);
             }
         }
-        self.idx = usize::MAX;
+        self.iterating = false;
         Ok(None)
     }
 

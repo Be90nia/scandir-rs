@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::fs::Metadata;
 use std::io::Error;
 use std::path::Path;
 use std::sync::Arc;
@@ -75,12 +74,13 @@ fn count_thread(
     let mut file_indexes: HashSet<u64> = HashSet::new();
     let root_path_len = get_root_path_len(&options.root_path);
     let max_file_cnt = options.max_file_cnt as i32;
-    for result in WalkDirGeneric::<((), Option<Result<Metadata, Error>>)>::new(&options.root_path)
+    for result in WalkDirGeneric::<((), ())>::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
         .sort(false)
         .max_depth(options.max_depth)
         .read_metadata(true)
         .read_metadata_ext(options.return_type == ReturnType::Ext)
+        .read_hardlink_info(options.return_type == ReturnType::Ext)
         .process_read_dir(move |_, root_dir, _, children| {
             if let Some(root_dir) = root_dir.to_str() {
                 if root_dir.len() + 1 < root_path_len {

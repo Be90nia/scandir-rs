@@ -1,0 +1,984 @@
+{
+  "nodes": [
+    {
+      "id": "scandir_rs_project",
+      "label": "scandir-rs Project",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_parallel_fs",
+      "label": "Parallel File System Access",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_gil_release",
+      "label": "GIL Release for Python Threads",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pyscandir_module",
+      "label": "Python Module scandir_rs",
+      "file_type": "document",
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_module",
+      "label": "Rust Module scandir",
+      "file_type": "document",
+      "source_file": "scandir/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "count_api",
+      "label": "Count API",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "walk_api",
+      "label": "Walk API",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/walk.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scandir_api",
+      "label": "Scandir API",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "statistics_class",
+      "label": "Statistics Class",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "toc_class",
+      "label": "Toc Class",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/walk.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "direntry_class",
+      "label": "DirEntry Class",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "direntryext_class",
+      "label": "DirEntryExt Class",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "returntype_enum",
+      "label": "ReturnType Enum",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "skip_hidden_default_false",
+      "label": "skip_hidden Default Changed to False",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "background_thread_pattern",
+      "label": "Background Thread Pattern",
+      "file_type": "rationale",
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "context_manager_pattern",
+      "label": "Context Manager Pattern",
+      "file_type": "rationale",
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "maturin_build",
+      "label": "Maturin Build System",
+      "file_type": "document",
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pyo3_binding",
+      "label": "PyO3 Rust-Python Binding",
+      "file_type": "rationale",
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "benchmark_count",
+      "label": "Count Benchmarks",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "benchmark_walk",
+      "label": "Walk Benchmarks",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "benchmark_scandir",
+      "label": "Scandir Benchmarks",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "glob_pattern_filtering",
+      "label": "Glob Pattern Filtering",
+      "file_type": "rationale",
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "speedy_serialization",
+      "label": "Speedy Serialization",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "bincode_serialization",
+      "label": "Bincode Serialization",
+      "file_type": "document",
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "linux_walk_benchmark_chart",
+      "label": "Linux Walk Benchmark Chart",
+      "file_type": "image",
+      "source_file": "pyscandir/doc/images/linux_walk_linux-5.9.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "linux_scandir_benchmark_chart",
+      "label": "Linux Scandir Benchmark Chart",
+      "file_type": "image",
+      "source_file": "pyscandir/doc/images/linux_scandir_linux-5.9.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "windows_walk_benchmark_chart",
+      "label": "Windows Walk Benchmark Chart",
+      "file_type": "image",
+      "source_file": "pyscandir/doc/images/windows_walk_windows.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "windows_scandir_benchmark_chart",
+      "label": "Windows Scandir Benchmark Chart",
+      "file_type": "image",
+      "source_file": "pyscandir/doc/images/windows_scandir_windows.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "create_charts_tool",
+      "label": "Create Charts Tool",
+      "file_type": "code",
+      "source_file": "tools/create_charts.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_benchmark_count",
+      "label": "Rust Count Benchmarks",
+      "file_type": "document",
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_benchmark_walk",
+      "label": "Rust Walk Benchmarks",
+      "file_type": "document",
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_benchmark_scandir",
+      "label": "Rust Scandir Benchmarks",
+      "file_type": "document",
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_count_api",
+      "label": "Rust Count API",
+      "file_type": "document",
+      "source_file": "scandir/doc/count.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_walk_api",
+      "label": "Rust Walk API",
+      "file_type": "document",
+      "source_file": "scandir/doc/walk.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_scandir_api",
+      "label": "Rust Scandir API",
+      "file_type": "document",
+      "source_file": "scandir/doc/scandir.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_walkdir_comparison",
+      "label": "Comparison with walkdir crate",
+      "file_type": "rationale",
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_scan_dir_comparison",
+      "label": "Comparison with scan_dir crate",
+      "file_type": "rationale",
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_linux_walk_chart",
+      "label": "Rust Linux Walk Benchmark Chart",
+      "file_type": "image",
+      "source_file": "scandir/doc/images/linux_walk_linux-5.9.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_linux_scandir_chart",
+      "label": "Rust Linux Scandir Benchmark Chart",
+      "file_type": "image",
+      "source_file": "scandir/doc/images/linux_scandir_linux-5.9.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_windows_walk_chart",
+      "label": "Rust Windows Walk Benchmark Chart",
+      "file_type": "image",
+      "source_file": "scandir/doc/images/windows_walk_windows.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rust_windows_scandir_chart",
+      "label": "Rust Windows Scandir Benchmark Chart",
+      "file_type": "image",
+      "source_file": "scandir/doc/images/windows_scandir_windows.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "scandir_rs_project",
+      "target": "pyscandir_module",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "scandir_rs_project",
+      "target": "rust_module",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "scandir_rs_project",
+      "target": "readme_parallel_fs",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pyscandir_module",
+      "target": "count_api",
+      "relation": "exposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pyscandir_module",
+      "target": "walk_api",
+      "relation": "exposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pyscandir_module",
+      "target": "scandir_api",
+      "relation": "exposes",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pyscandir_module",
+      "target": "readme_gil_release",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pyscandir_module",
+      "target": "pyo3_binding",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pyscandir_module",
+      "target": "maturin_build",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "count_api",
+      "target": "statistics_class",
+      "relation": "returns",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "count_api",
+      "target": "returntype_enum",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "count_api",
+      "target": "glob_pattern_filtering",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "walk_api",
+      "target": "toc_class",
+      "relation": "returns",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/walk.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "walk_api",
+      "target": "returntype_enum",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/walk.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "scandir_api",
+      "target": "direntry_class",
+      "relation": "returns",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "scandir_api",
+      "target": "direntryext_class",
+      "relation": "returns",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "scandir_api",
+      "target": "returntype_enum",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "direntryext_class",
+      "target": "direntry_class",
+      "relation": "extends",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "background_thread_pattern",
+      "target": "count_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "background_thread_pattern",
+      "target": "walk_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "background_thread_pattern",
+      "target": "scandir_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "context_manager_pattern",
+      "target": "count_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "context_manager_pattern",
+      "target": "walk_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "context_manager_pattern",
+      "target": "scandir_api",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "scandir_rs_project",
+      "target": "skip_hidden_default_false",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "benchmark_count",
+      "target": "count_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "benchmark_walk",
+      "target": "walk_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "benchmark_scandir",
+      "target": "scandir_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "linux_walk_benchmark_chart",
+      "target": "benchmark_walk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/images/linux_walk_linux-5.9.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "linux_scandir_benchmark_chart",
+      "target": "benchmark_scandir",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/images/linux_scandir_linux-5.9.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "windows_walk_benchmark_chart",
+      "target": "benchmark_walk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/images/windows_walk_windows.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "windows_scandir_benchmark_chart",
+      "target": "benchmark_scandir",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/images/windows_scandir_windows.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "count_api",
+      "target": "walk_api",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "pyscandir/doc/count.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "walk_api",
+      "target": "scandir_api",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "pyscandir/doc/walk.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "speedy_serialization",
+      "target": "scandir_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "bincode_serialization",
+      "target": "scandir_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "speedy_serialization",
+      "target": "bincode_serialization",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "pyscandir/doc/scandir.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "create_charts_tool",
+      "target": "rust_benchmark_count",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tools/create_charts.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "create_charts_tool",
+      "target": "rust_benchmark_walk",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tools/create_charts.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "create_charts_tool",
+      "target": "rust_benchmark_scandir",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tools/create_charts.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_benchmark_count",
+      "target": "rust_count_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_benchmark_walk",
+      "target": "rust_walk_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_benchmark_scandir",
+      "target": "rust_scandir_api",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_benchmark_walk",
+      "target": "rust_walkdir_comparison",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_benchmark_scandir",
+      "target": "rust_scan_dir_comparison",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/benchmarks.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_linux_walk_chart",
+      "target": "rust_benchmark_walk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/images/linux_walk_linux-5.9.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_linux_scandir_chart",
+      "target": "rust_benchmark_scandir",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/images/linux_scandir_linux-5.9.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_windows_walk_chart",
+      "target": "rust_benchmark_walk",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/images/windows_walk_windows.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_windows_scandir_chart",
+      "target": "rust_benchmark_scandir",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scandir/doc/images/windows_scandir_windows.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_count_api",
+      "target": "rust_walk_api",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "scandir/doc/count.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rust_walk_api",
+      "target": "rust_scandir_api",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "scandir/doc/walk.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "three_main_apis",
+      "label": "Three Main Directory Iteration APIs",
+      "nodes": [
+        "count_api",
+        "walk_api",
+        "scandir_api"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pyscandir/README.md"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

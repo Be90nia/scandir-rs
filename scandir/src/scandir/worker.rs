@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::io::{Error, ErrorKind};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
@@ -94,15 +94,20 @@ fn create_entry(
     }
     let is_file = file_type.is_file();
     let path_str = dir_entry.parent_path.to_str().unwrap();
-    let mut path = if path_str.len() > root_path_len {
-        PathBuf::from(&path_str[root_path_len..])
+    let file_name = dir_entry.file_name.to_str().unwrap();
+    let path = if path_str.len() > root_path_len {
+        let relative = &path_str[root_path_len..];
+        let mut p = String::with_capacity(relative.len() + 1 + file_name.len());
+        p.push_str(relative);
+        p.push('/');
+        p.push_str(file_name);
+        p
     } else {
-        PathBuf::new()
+        file_name.to_owned()
     };
-    path.push(&dir_entry.file_name);
     let entry: ScandirResult = match return_type {
         ReturnType::Base => ScandirResult::DirEntry(DirEntry {
-            path: path.to_str().unwrap().to_string(),
+            path: path.clone(),
             is_symlink: file_type.is_symlink(),
             is_dir: file_type.is_dir(),
             is_file,
@@ -112,7 +117,7 @@ fn create_entry(
             st_size,
         }),
         ReturnType::Ext => ScandirResult::DirEntryExt(DirEntryExt {
-            path: path.to_str().unwrap().to_string(),
+            path,
             is_symlink: file_type.is_symlink(),
             is_dir: file_type.is_dir(),
             is_file,
@@ -142,7 +147,7 @@ fn worker_thread(
     stop: Arc<AtomicBool>,
 ) {
     let root_path_len = get_root_path_len(&options.root_path);
-    let return_type = options.return_type.clone();
+    let return_type = options.return_type;
     // If root path points to a file then return just this one entry
     if !dir_entry.file_type.is_dir() {
         let _ = tx.send(create_entry(root_path_len, &return_type, &dir_entry));
@@ -159,6 +164,7 @@ fn worker_thread(
         .max_depth(options.max_depth)
         .read_metadata(true)
         .read_metadata_ext(options.return_type == ReturnType::Ext)
+        .read_hardlink_info(options.return_type == ReturnType::Ext)
         .process_read_dir(move |_, root_dir, _, children| {
             if let Some(root_dir) = root_dir.to_str() {
                 if root_dir.len() + 1 < root_path_len {

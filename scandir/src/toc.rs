@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 #[cfg(feature = "bincode")]
 use bincode::error::EncodeError;
 #[cfg(feature = "speedy")]
@@ -67,41 +65,24 @@ impl Toc {
     }
 
     pub fn extend(&mut self, root_dir: &str, other: &Toc) {
-        self.dirs.extend_from_slice(
-            &other
-                .dirs
-                .iter()
-                .map(|x| PathBuf::from(root_dir).join(x).to_str().unwrap().to_owned())
-                .collect::<Vec<String>>(),
-        );
-        self.files.extend_from_slice(
-            &other
-                .files
-                .iter()
-                .map(|x| PathBuf::from(root_dir).join(x).to_str().unwrap().to_owned())
-                .collect::<Vec<String>>(),
-        );
-        self.symlinks.extend_from_slice(
-            &other
-                .symlinks
-                .iter()
-                .map(|x| PathBuf::from(root_dir).join(x).to_str().unwrap().to_owned())
-                .collect::<Vec<String>>(),
-        );
-        self.other.extend_from_slice(
-            &other
-                .other
-                .iter()
-                .map(|x| PathBuf::from(root_dir).join(x).to_str().unwrap().to_owned())
-                .collect::<Vec<String>>(),
-        );
-        self.errors.extend_from_slice(
-            &other
-                .errors
-                .iter()
-                .map(|x| PathBuf::from(root_dir).join(x).to_str().unwrap().to_owned())
-                .collect::<Vec<String>>(),
-        );
+        let root_len = root_dir.len();
+        let join_path = |x: &str| -> String {
+            let mut path = String::with_capacity(root_len + 1 + x.len());
+            path.push_str(root_dir);
+            path.push('/');
+            path.push_str(x);
+            path
+        };
+        self.dirs.reserve(other.dirs.len());
+        self.dirs.extend(other.dirs.iter().map(|x| join_path(x)));
+        self.files.reserve(other.files.len());
+        self.files.extend(other.files.iter().map(|x| join_path(x)));
+        self.symlinks.reserve(other.symlinks.len());
+        self.symlinks.extend(other.symlinks.iter().map(|x| join_path(x)));
+        self.other.reserve(other.other.len());
+        self.other.extend(other.other.iter().map(|x| join_path(x)));
+        self.errors.reserve(other.errors.len());
+        self.errors.extend(other.errors.iter().map(|x| join_path(x)));
     }
 
     #[cfg(feature = "speedy")]

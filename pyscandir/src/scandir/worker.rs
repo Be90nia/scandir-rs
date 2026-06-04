@@ -175,15 +175,15 @@ impl Scandir {
         let entries = self.instance.results(only_new.unwrap_or(true));
         for entry in entries.results {
             let _ = match entry {
-                ScandirResult::DirEntry(e) => pyresults.set_item(
-                    e.path.clone().into_py_any(py)?,
-                    Py::new(py, DirEntry::from(&e)).unwrap().into_any(),
-                ),
-                ScandirResult::DirEntryExt(e) => pyresults.set_item(
-                    e.path.clone().into_py_any(py)?,
-                    Py::new(py, DirEntryExt::from(&e)).unwrap().into_any(),
-                ),
-                ScandirResult::Error((path, e)) => pyresults.set_item(path.into_py_any(py)?, e),
+                ScandirResult::DirEntry(e) => {
+                    let path = e.path.clone();
+                    pyresults.set_item(path, Py::new(py, DirEntry::from_owned(e)).unwrap().into_any())
+                }
+                ScandirResult::DirEntryExt(e) => {
+                    let path = e.path.clone();
+                    pyresults.set_item(path, Py::new(py, DirEntryExt::from_owned(e)).unwrap().into_any())
+                }
+                ScandirResult::Error((path, e)) => pyresults.set_item(path, e),
             };
         }
         for error in entries.errors {

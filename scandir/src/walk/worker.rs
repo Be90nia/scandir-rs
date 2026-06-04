@@ -22,7 +22,7 @@ use crate::{
 #[inline]
 fn update_toc(dir_entry: &DirEntryType, toc: &mut Toc) {
     let file_type = dir_entry.file_type;
-    let key = dir_entry.file_name.clone().into_string().unwrap();
+    let key = dir_entry.file_name.to_str().unwrap().to_owned();
     if file_type.is_symlink() {
         toc.symlinks.push(key);
     } else if file_type.is_dir() {
@@ -68,21 +68,16 @@ fn worker_thread(
                 return;
             }
             filter_children(children, &filter, root_path_len);
-            if children.is_empty() {
-                return;
-            }
             let mut toc = Toc::new();
             children.iter_mut().for_each(|dir_entry_result| {
                 if let Ok(dir_entry) = dir_entry_result {
                     update_toc(dir_entry, &mut toc);
                 }
             });
-            if !toc.is_empty() {
-                if root_dir.len() > root_path_len {
-                    let _ = tx.send((root_dir[root_path_len..].to_owned(), toc));
-                } else {
-                    let _ = tx.send(("".to_owned(), toc));
-                }
+            if root_dir.len() > root_path_len {
+                let _ = tx.send((root_dir[root_path_len..].to_owned(), toc));
+            } else {
+                let _ = tx.send(("".to_owned(), toc));
             }
         })
     {
@@ -387,7 +382,7 @@ impl Walk {
             statistics.files += toc.files.len() as i32;
             statistics.slinks += toc.symlinks.len() as i32;
             statistics.devices += toc.other.len() as i32;
-            statistics.errors.extend(toc.errors.clone());
+            statistics.errors.extend_from_slice(&toc.errors);
         }
         statistics
     }

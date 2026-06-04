@@ -366,7 +366,7 @@ Fix CVE-2007-4559 in benchmark.py
 ### Fixed
 
 - Correctly count hardlinks.
-- Update [jwalk](https://github.com/brmmm3/jwalk/tree/jwalk-0.4.1-alpha.1) to get correct extended
+- Update [jwalk](https://github.com/Be90nia/jwalk/tree/jwalk-0.4.1-alpha.1) to get correct extended
   metadata (size and hardlinks).
 
 ## [0.7.2] - 2020-01-10

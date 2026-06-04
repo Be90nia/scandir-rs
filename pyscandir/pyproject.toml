@@ -1,6 +1,6 @@
 [project]
 name = "scandir-rs"
-version = "2.9.9"
+version = "3.0.0"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
 description = "A fast file tree scanner written in Rust"
 license = "MIT"
@@ -77,6 +77,6 @@ bench = [
 ]
 
 [project.urls]
-Source = "https://github.com/brmmm3/scandir-rs"
-Homepage = "https://github.com/brmmm3/scandir-rs"
-"Bug Tracker" = "https://github.com/brmmm3/scandir-rs/issues"
+Source = "https://github.com/Be90nia/scandir-rs"
+Homepage = "https://github.com/Be90nia/scandir-rs"
+"Bug Tracker" = "https://github.com/Be90nia/scandir-rs/issues"

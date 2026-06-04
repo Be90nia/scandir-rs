@@ -13,13 +13,13 @@ pub struct ScandirResult(scandir::ScandirResult);
 #[pymethods]
 impl ScandirResult {
     #[getter]
-    fn path(&self) -> String {
-        self.0.path().clone()
+    fn path(&self) -> &str {
+        self.0.path()
     }
 
     #[getter]
-    fn error(&self) -> Option<(String, String)> {
-        self.0.error().cloned()
+    fn error(&self) -> Option<&(String, String)> {
+        self.0.error()
     }
 
     #[getter]

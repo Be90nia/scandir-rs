@@ -151,11 +151,9 @@ pub fn filter_direntry(
     match options {
         Some(options) => {
             for f in filter {
-                if f.as_str().ends_with("**") && !key.ends_with('/') {
-                    // Workaround: glob currently has problems with "foo/**"
-                    let mut key = String::from(key);
-                    key.push('/');
-                    if f.matches_with(&key, options) {
+                if f.as_str().ends_with("/**") && !key.ends_with('/') {
+                    let key_with_slash = format!("{key}/");
+                    if f.matches_with(&key_with_slash, options) {
                         return true;
                     }
                 }
@@ -166,11 +164,9 @@ pub fn filter_direntry(
         }
         None => {
             for f in filter {
-                if f.as_str().ends_with("**") && !key.ends_with('/') {
-                    // Workaround: glob currently has problems with "foo/**"
-                    let mut key = String::from(key);
-                    key.push('/');
-                    if f.matches(&key) {
+                if f.as_str().ends_with("/**") && !key.ends_with('/') {
+                    let key_with_slash = format!("{key}/");
+                    if f.matches(&key_with_slash) {
                         return true;
                     }
                 }
@@ -185,16 +181,25 @@ pub fn filter_direntry(
 
 #[inline]
 pub fn filter_dir(root_path_len: usize, dir_entry: &DirEntryType, filter_ref: &Filter) -> bool {
-    let mut key = dir_entry.parent_path.to_path_buf();
-    key.push(dir_entry.file_name.clone().into_string().unwrap());
-    let key = key
-        .to_str()
-        .unwrap()
-        .get(root_path_len..)
-        .unwrap_or("")
-        .to_string();
-    if filter_direntry(&key, &filter_ref.dir_exclude, filter_ref.options, false)
-        || !filter_direntry(&key, &filter_ref.dir_include, filter_ref.options, true)
+    let file_name = match dir_entry.file_name.to_str() {
+        Some(s) => s,
+        None => return true,
+    };
+    let parent_str = match dir_entry.parent_path.to_str() {
+        Some(s) => s,
+        None => return true,
+    };
+    let full_len = parent_str.len() + 1 + file_name.len();
+    let mut key = String::with_capacity(full_len);
+    key.push_str(parent_str);
+    key.push('/');
+    key.push_str(file_name);
+    let key = match key.get(root_path_len..) {
+        Some(s) => s,
+        None => "",
+    };
+    if filter_direntry(key, &filter_ref.dir_exclude, filter_ref.options, false)
+        || !filter_direntry(key, &filter_ref.dir_include, filter_ref.options, true)
     {
         return false;
     }
@@ -253,7 +258,7 @@ pub fn start<T: Send + 'static + std::fmt::Debug>(
         true,
         true,
         options.follow_links,
-        Arc::new(Vec::new()),
+        Some(Arc::new(Vec::new())),
     )?;
     Ok((
         Some(thread::spawn(move || {

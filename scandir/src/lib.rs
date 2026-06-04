@@ -9,7 +9,6 @@
 //! - `Walk` for getting names of directory entries.
 //! - `Scandir` for getting detailed stats of directory entries.
 
-#![cfg_attr(windows, feature(windows_by_handle))]
 
 extern crate glob_sl;
 #[cfg_attr(any(feature = "bincode", feature = "json"), macro_use)]
