@@ -211,7 +211,8 @@ pub fn filter_children(
     children: &mut Vec<Result<DirEntryType, jwalk_meta::Error>>,
     filter: &Option<Filter>,
     root_path_len: usize,
-) {
+) -> Vec<String> {
+    let mut errors = Vec::new();
     if let Some(filter_ref) = &filter {
         children.retain(|dir_entry_result| {
             dir_entry_result
@@ -235,9 +236,13 @@ pub fn filter_children(
                     }
                     true
                 })
-                .unwrap_or(false)
+                .unwrap_or_else(|e| {
+                    errors.push(e.to_string());
+                    false
+                })
         });
     }
+    errors
 }
 
 #[allow(clippy::type_complexity)]

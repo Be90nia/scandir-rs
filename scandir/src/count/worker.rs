@@ -74,6 +74,9 @@ fn count_thread(
     let mut file_indexes: HashSet<u64> = HashSet::new();
     let root_path_len = get_root_path_len(&options.root_path);
     let max_file_cnt = options.max_file_cnt as i32;
+    let filter_errors: std::sync::Arc<parking_lot::Mutex<Vec<String>>> =
+        std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
+    let filter_errors_clone = filter_errors.clone();
     for result in WalkDirGeneric::<((), ())>::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
         .sort(false)
@@ -89,7 +92,7 @@ fn count_thread(
             } else {
                 return;
             }
-            filter_children(children, &filter, root_path_len);
+            filter_errors_clone.lock().extend(filter_children(children, &filter, root_path_len));
         })
     {
         if stop.load(Ordering::Relaxed) {
@@ -187,6 +190,7 @@ fn count_thread(
             Err(e) => statistics.errors.push(e.to_string()), // TODO: Need to fetch failed path from somewhere
         }
     }
+    statistics.errors.extend(filter_errors.lock().drain(..));
     statistics.dirs = dirs;
     statistics.files = files;
     statistics.slinks = slinks;

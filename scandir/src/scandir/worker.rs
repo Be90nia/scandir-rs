@@ -173,15 +173,24 @@ fn worker_thread(
             } else {
                 return;
             }
-            filter_children(children, &filter, root_path_len);
+            for e in filter_children(children, &filter, root_path_len) {
+                if tx.send(ScandirResult::Error((String::new(), e))).is_err() {
+                    return;
+                }
+            }
             #[allow(clippy::needless_return)]
             children.iter_mut().for_each(|dir_entry_result| {
-                if let Ok(dir_entry) = dir_entry_result
-                    && tx
-                        .send(create_entry(root_path_len, &return_type, dir_entry))
-                        .is_err()
-                {
-                    return;
+                match dir_entry_result {
+                    Ok(dir_entry) => {
+                        if tx.send(create_entry(root_path_len, &return_type, dir_entry)).is_err() {
+                            return;
+                        }
+                    }
+                    Err(e) => {
+                        if tx.send(ScandirResult::Error((String::new(), e.to_string()))).is_err() {
+                            return;
+                        }
+                    }
                 }
             });
         })

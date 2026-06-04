@@ -68,11 +68,12 @@ fn worker_thread(
             if root_dir.len() + 1 < root_path_len {
                 return;
             }
-            filter_children(children, &filter, root_path_len);
             let mut toc = Toc::new();
+            toc.errors.extend(filter_children(children, &filter, root_path_len));
             children.iter_mut().for_each(|dir_entry_result| {
-                if let Ok(dir_entry) = dir_entry_result {
-                    update_toc(dir_entry, &mut toc);
+                match dir_entry_result {
+                    Ok(dir_entry) => update_toc(dir_entry, &mut toc),
+                    Err(e) => toc.errors.push(e.to_string()),
                 }
             });
             if root_dir.len() > root_path_len {
