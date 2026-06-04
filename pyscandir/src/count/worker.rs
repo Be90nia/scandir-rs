@@ -1,4 +1,5 @@
 use std::io::ErrorKind;
+use std::time::Duration;
 
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -96,9 +97,22 @@ impl Count {
         Ok(true)
     }
 
-    pub fn collect(&mut self, py: Python) -> PyResult<Py<PyAny>> {
-        let results = py.detach(|| self.instance.collect())?;
-        Ok(Py::new(py, Statistics::from(&results)).unwrap().into_any())
+    #[pyo3(signature = (timeout=None))]
+    pub fn collect(&mut self, timeout: Option<f64>, py: Python) -> PyResult<Option<Py<PyAny>>> {
+        match timeout {
+            Some(secs) if secs > 0.0 => {
+                let duration = Duration::from_secs_f64(secs);
+                let result = py.detach(|| self.instance.collect_timeout(duration))?;
+                match result {
+                    Some(statistics) => Ok(Some(Py::new(py, Statistics::from(&statistics)).unwrap().into_any())),
+                    None => Ok(None),
+                }
+            }
+            _ => {
+                let results = py.detach(|| self.instance.collect())?;
+                Ok(Some(Py::new(py, Statistics::from(&results)).unwrap().into_any()))
+            }
+        }
     }
 
     pub fn has_results(&mut self) -> bool {

@@ -4,6 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
+use std::time::{Duration, Instant};
 
 #[cfg(feature = "bincode")]
 use bincode::error::EncodeError;
@@ -291,6 +292,42 @@ impl Walk {
         entries
     }
 
+    /// Receive results with a timeout. Waits up to `timeout` for the first result,
+    /// then drains all available results from the channel.
+    /// Returns an empty Vec if timeout expires before any data arrives.
+    fn receive_all_timeout(&mut self, timeout: Duration) -> Vec<(String, Toc)> {
+        let mut entries = Vec::new();
+        if let Some(ref rx) = self.rx {
+            // First, try non-blocking drain
+            while let Ok(entry) = rx.try_recv() {
+                if !entry.1.errors.is_empty() {
+                    self.has_errors = true;
+                }
+                entries.push(entry);
+            }
+            // If nothing available and worker still busy, wait for first result
+            if entries.is_empty() {
+                match rx.recv_timeout(timeout) {
+                    Ok(entry) => {
+                        if !entry.1.errors.is_empty() {
+                            self.has_errors = true;
+                        }
+                        entries.push(entry);
+                        // Drain remaining
+                        while let Ok(entry) = rx.try_recv() {
+                            if !entry.1.errors.is_empty() {
+                                self.has_errors = true;
+                            }
+                            entries.push(entry);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        entries
+    }
+
     pub fn collect(&mut self) -> Result<Toc, Error> {
         if !self.finished() {
             if !self.busy() {
@@ -338,6 +375,51 @@ impl Walk {
             return self.entries.clone();
         }
         entries
+    }
+
+    /// Retrieve results with a timeout for event-driven consumption.
+    /// Waits up to `timeout` for results to arrive when channel is empty.
+    /// Returns new results only (always only_new=true behavior).
+    pub fn results_timeout(&mut self, timeout: Duration) -> Vec<(String, Toc)> {
+        let entries = self.receive_all_timeout(timeout);
+        if self.store {
+            self.entries.extend_from_slice(&entries);
+        }
+        entries
+    }
+
+    /// Collect results with an optional timeout for time-bounded operation.
+    /// Returns `Ok(Some(Toc))` when collection completes within timeout.
+    /// Returns `Ok(None)` if timeout expires before completion.
+    /// Returns `Ok(Some(Toc))` immediately if already finished.
+    /// The worker thread continues running after timeout — call `stop()` to abort.
+    pub fn collect_timeout(&mut self, timeout: Duration) -> Result<Option<Toc>, Error> {
+        if !self.finished() {
+            if !self.busy() {
+                self.start()?;
+            }
+            let deadline = Instant::now() + timeout;
+            while !self.finished() && self.busy() {
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    // Timeout expired, return partial results
+                    let mut toc = Toc::new();
+                    for (root_dir, dir_toc) in self.results(false) {
+                        toc.extend(&root_dir, &dir_toc);
+                    }
+                    return Ok(None);
+                }
+                let entries = self.receive_all_timeout(remaining.min(Duration::from_millis(100)));
+                if self.store {
+                    self.entries.extend_from_slice(&entries);
+                }
+            }
+        }
+        let mut toc = Toc::new();
+        for (root_dir, dir_toc) in self.results(false) {
+            toc.extend(&root_dir, &dir_toc);
+        }
+        Ok(Some(toc))
     }
 
     pub fn has_errors(&mut self) -> bool {

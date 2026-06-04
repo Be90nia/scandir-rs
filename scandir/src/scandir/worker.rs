@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "bincode")]
 use bincode::error::EncodeError;
@@ -397,6 +397,28 @@ impl Scandir {
         Ok(self.results(true))
     }
 
+    /// Collect results with a timeout for time-bounded operation.
+    /// Returns `Ok(Some(ScandirResults))` when collection completes within timeout.
+    /// Returns `Ok(None)` if timeout expires before completion.
+    /// The worker thread continues running after timeout — call `stop()` to abort.
+    pub fn collect_timeout(&mut self, timeout: Duration) -> Result<Option<ScandirResults>, Error> {
+        if !self.finished() {
+            if !self.busy() {
+                self.start()?;
+            }
+            let deadline = Instant::now() + timeout;
+            while !self.finished() && self.busy() {
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Ok(None);
+                }
+                let entries = self.receive_all_timeout(remaining.min(Duration::from_millis(100)));
+                let _ = entries;
+            }
+        }
+        Ok(Some(self.results(true)))
+    }
+
     pub fn has_results(&mut self, only_new: bool) -> bool {
         if let Some(ref rx) = self.rx
             && !rx.is_empty()
@@ -441,6 +463,51 @@ impl Scandir {
             return self.entries.clone();
         }
         results
+    }
+
+    /// Receive results with a timeout. Waits up to `timeout` for the first result,
+    /// then drains all available results from the channel.
+    fn receive_all_timeout(&mut self, timeout: Duration) -> ScandirResults {
+        let mut results = ScandirResults::new();
+        if let Some(ref rx) = self.rx {
+            // First, try non-blocking drain
+            while let Ok(entry) = rx.try_recv() {
+                match entry {
+                    ScandirResult::Error(e) => results.errors.push(e),
+                    _ => results.results.push(entry),
+                }
+            }
+            // If nothing available and worker busy, wait for first result
+            if results.is_empty() {
+                match rx.recv_timeout(timeout) {
+                    Ok(entry) => {
+                        match entry {
+                            ScandirResult::Error(e) => results.errors.push(e),
+                            _ => results.results.push(entry),
+                        }
+                        // Drain remaining
+                        while let Ok(entry) = rx.try_recv() {
+                            match entry {
+                                ScandirResult::Error(e) => results.errors.push(e),
+                                _ => results.results.push(entry),
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        if self.store {
+            self.entries.extend(&results);
+        }
+        results
+    }
+
+    /// Retrieve results with a timeout for event-driven consumption.
+    /// Waits up to `timeout` for results to arrive when channel is empty.
+    /// Returns new results only (always only_new=true behavior).
+    pub fn results_timeout(&mut self, timeout: Duration) -> ScandirResults {
+        self.receive_all_timeout(timeout)
     }
 
     pub fn has_entries(&mut self, only_new: bool) -> bool {

@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use flume::{Receiver, Sender};
 use jwalk_meta::WalkDirGeneric;
@@ -387,6 +387,34 @@ impl Count {
         Ok(self.receive_all())
     }
 
+    /// Collect results with a timeout for time-bounded operation.
+    /// Returns `Ok(Some(Statistics))` when collection completes within timeout.
+    /// Returns `Ok(None)` if timeout expires before completion.
+    /// The worker thread continues running after timeout — call `stop()` to abort.
+    pub fn collect_timeout(&mut self, timeout: Duration) -> Result<Option<Statistics>, Error> {
+        if !self.finished() {
+            if !self.busy() {
+                self.start()?;
+            }
+            let deadline = Instant::now() + timeout;
+            while !self.finished() && self.busy() {
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    // Timeout - drain whatever we have
+                    let _ = self.receive_all();
+                    return Ok(None);
+                }
+                if let Some(ref rx) = self.rx {
+                    match rx.recv_timeout(remaining.min(Duration::from_millis(100))) {
+                        Ok(s) => self.statistics = s,
+                        _ => {}
+                    }
+                }
+            }
+        }
+        Ok(Some(self.receive_all()))
+    }
+
     pub fn has_results(&self) -> bool {
         if let Some(ref rx) = self.rx
             && !rx.is_empty()
@@ -398,6 +426,37 @@ impl Count {
 
     pub fn results(&mut self) -> Statistics {
         self.receive_all()
+    }
+
+    /// Retrieve results with a timeout for event-driven consumption.
+    /// Waits up to `timeout` for results when channel is empty.
+    pub fn results_timeout(&mut self, timeout: Duration) -> Statistics {
+        if let Some(ref rx) = self.rx {
+            // First try non-blocking drain
+            let has_data = match rx.try_recv() {
+                Ok(s) => {
+                    self.statistics = s;
+                    while let Ok(s) = rx.try_recv() {
+                        self.statistics = s;
+                    }
+                    true
+                }
+                _ => false
+            };
+            // If nothing available and worker busy, wait with timeout
+            if !has_data {
+                match rx.recv_timeout(timeout) {
+                    Ok(s) => {
+                        self.statistics = s;
+                        while let Ok(s) = rx.try_recv() {
+                            self.statistics = s;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        self.statistics.clone()
     }
 
     pub fn has_errors(&mut self) -> bool {

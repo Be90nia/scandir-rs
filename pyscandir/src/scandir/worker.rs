@@ -1,5 +1,4 @@
 use std::io::ErrorKind;
-use std::thread;
 use std::time::Duration;
 
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
@@ -106,14 +105,26 @@ impl Scandir {
         Ok(true)
     }
 
-    pub fn collect(&mut self, py: Python) -> PyResult<(Vec<Py<PyAny>>, ErrorsType)> {
-        let entries = py.detach(|| self.instance.collect())?;
-        let results = entries
-            .results
-            .iter()
-            .filter_map(|r| result2py(r, py))
-            .collect();
-        Ok((results, entries.errors))
+    #[pyo3(signature = (timeout=None))]
+    pub fn collect(&mut self, timeout: Option<f64>, py: Python) -> PyResult<Option<(Vec<Py<PyAny>>, ErrorsType)>> {
+        match timeout {
+            Some(secs) if secs > 0.0 => {
+                let duration = Duration::from_secs_f64(secs);
+                let result = py.detach(|| self.instance.collect_timeout(duration))?;
+                match result {
+                    Some(entries) => {
+                        let results = entries.results.iter().filter_map(|r| result2py(r, py)).collect();
+                        Ok(Some((results, entries.errors)))
+                    }
+                    None => Ok(None),
+                }
+            }
+            _ => {
+                let entries = py.detach(|| self.instance.collect())?;
+                let results = entries.results.iter().filter_map(|r| result2py(r, py)).collect();
+                Ok(Some((results, entries.errors)))
+            }
+        }
     }
 
     #[pyo3(signature = (only_new=None))]
@@ -300,15 +311,17 @@ impl Scandir {
             if let Some(error) = self.entries.errors.pop() {
                 return Ok(Some(error.into_py_any(py)?));
             }
-            let entries = self.instance.results(true);
+            // Event-driven wait: release GIL while waiting for results
+            let entries = py.detach(|| {
+                self.instance.results_timeout(Duration::from_millis(100))
+            });
             if entries.is_empty() {
                 if !self.instance.busy() {
                     break;
                 }
-                thread::sleep(Duration::from_millis(10));
-            } else {
-                self.entries.extend(&entries);
+                continue;
             }
+            self.entries.extend(&entries);
         }
         Ok(None)
     }

@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::io::ErrorKind;
-use std::thread;
 use std::time::Duration;
 
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
@@ -104,8 +103,22 @@ impl Walk {
         Ok(true)
     }
 
-    pub fn collect(&mut self, py: Python) -> PyResult<Toc> {
-        Ok(Toc::from(&py.detach(|| self.instance.collect())?))
+    #[pyo3(signature = (timeout=None))]
+    pub fn collect(&mut self, timeout: Option<f64>, py: Python) -> PyResult<Option<Toc>> {
+        match timeout {
+            Some(secs) if secs > 0.0 => {
+                let duration = Duration::from_secs_f64(secs);
+                let result = py.detach(|| self.instance.collect_timeout(duration))?;
+                match result {
+                    Some(toc) => Ok(Some(Toc::from(&toc))),
+                    None => Ok(None),
+                }
+            }
+            _ => {
+                let toc = py.detach(|| self.instance.collect())?;
+                Ok(Some(Toc::from(&toc)))
+            }
+        }
     }
 
     #[pyo3(signature = (only_new=None))]
@@ -259,12 +272,14 @@ impl Walk {
                     ));
                 }
             } else {
-                let new_entries = self.instance.results(true);
+                // Event-driven wait: release GIL while waiting for results
+                let new_entries = py.detach(|| {
+                    self.instance.results_timeout(Duration::from_millis(100))
+                });
                 if new_entries.is_empty() {
                     if !self.instance.busy() {
                         break;
                     }
-                    thread::sleep(Duration::from_millis(10));
                     continue;
                 }
                 self.entries.extend(new_entries);
