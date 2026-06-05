@@ -125,3 +125,57 @@ fn test_scandir_follow_links() -> Result<(), Error> {
     }
     common::cleanup(temp_dir)
 }
+
+#[test]
+fn test_scandir_categorizes_dirs_and_files() -> Result<(), Error> {
+    #[cfg(unix)]
+    let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 6, 7)?;
+    #[cfg(windows)]
+    let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 3)?;
+    let entries = Scandir::new(temp_dir.path(), Some(true))?.collect()?;
+    assert!(!entries.dirs.is_empty(), "dirs should contain subdirectories");
+    assert!(!entries.files.is_empty(), "files should contain regular files");
+    assert_eq!(
+        entries.results.len(),
+        entries.dirs.len() + entries.files.len() + entries.symlinks.len() + entries.other.len(),
+        "results total should equal sum of categorized fields"
+    );
+    assert_eq!(0, entries.errors.len());
+    common::cleanup(temp_dir)
+}
+
+#[test]
+fn test_scandir_categorization_types() -> Result<(), Error> {
+    #[cfg(unix)]
+    let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 6, 7)?;
+    #[cfg(windows)]
+    let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 3)?;
+    let entries = Scandir::new(temp_dir.path(), Some(true))?.collect()?;
+    for entry in &entries.dirs {
+        assert!(entry.is_dir(), "entry in dirs should be a directory");
+    }
+    for entry in &entries.files {
+        assert!(entry.is_file(), "entry in files should be a file");
+    }
+    for entry in &entries.symlinks {
+        assert!(entry.is_symlink(), "entry in symlinks should be a symlink");
+    }
+    common::cleanup(temp_dir)
+}
+
+#[test]
+fn test_scandir_results_backward_compat() -> Result<(), Error> {
+    #[cfg(unix)]
+    let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 6, 7)?;
+    #[cfg(windows)]
+    let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 3)?;
+    let entries = Scandir::new(temp_dir.path(), Some(true))?.collect()?;
+    assert!(!entries.results.is_empty(), "results field should still contain all entries");
+    #[cfg(unix)]
+    assert_eq!(210, entries.results.len());
+    #[cfg(windows)]
+    assert_eq!(125, entries.results.len());
+    let categorized = entries.dirs.len() + entries.files.len() + entries.symlinks.len() + entries.other.len();
+    assert_eq!(entries.results.len(), categorized, "sum of categorized should equal results");
+    common::cleanup(temp_dir)
+}

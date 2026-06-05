@@ -461,7 +461,7 @@ impl Scandir {
                 if let ScandirResult::Error(e) = entry {
                     results.errors.push(e);
                 } else {
-                    results.results.push(entry);
+                    results.push_entry(entry);
                 }
             }
         }
@@ -483,7 +483,7 @@ impl Scandir {
             while let Ok(entry) = rx.try_recv() {
                 match entry {
                     ScandirResult::Error(e) => results.errors.push(e),
-                    _ => results.results.push(entry),
+                    other => results.push_entry(other),
                 }
             }
             // If nothing available and worker busy, wait for first result
@@ -492,13 +492,13 @@ impl Scandir {
                     Ok(entry) => {
                         match entry {
                             ScandirResult::Error(e) => results.errors.push(e),
-                            _ => results.results.push(entry),
+                            other => results.push_entry(other),
                         }
                         // Drain remaining
                         while let Ok(entry) = rx.try_recv() {
                             match entry {
                                 ScandirResult::Error(e) => results.errors.push(e),
-                                _ => results.results.push(entry),
+                                other => results.push_entry(other),
                             }
                         }
                     }

@@ -133,6 +133,10 @@ impl ScandirResult {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScandirResults {
     pub results: Vec<ScandirResult>,
+    pub dirs: Vec<ScandirResult>,
+    pub files: Vec<ScandirResult>,
+    pub symlinks: Vec<ScandirResult>,
+    pub other: Vec<ScandirResult>,
     pub errors: ErrorsType,
 }
 
@@ -140,28 +144,58 @@ impl ScandirResults {
     pub fn new() -> Self {
         ScandirResults {
             results: Vec::new(),
+            dirs: Vec::new(),
+            files: Vec::new(),
+            symlinks: Vec::new(),
+            other: Vec::new(),
             errors: Vec::new(),
         }
     }
 
     pub fn clear(&mut self) {
         self.results.clear();
+        self.dirs.clear();
+        self.files.clear();
+        self.symlinks.clear();
+        self.other.clear();
         self.errors.clear();
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.results.is_empty() && self.errors.is_empty()
+        self.results.is_empty()
+            && self.dirs.is_empty()
+            && self.files.is_empty()
+            && self.symlinks.is_empty()
+            && self.other.is_empty()
+            && self.errors.is_empty()
     }
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.results.len() + self.errors.len()
+        self.results.len()
     }
 
     pub fn extend(&mut self, results: &ScandirResults) {
         self.results.extend_from_slice(&results.results);
+        self.dirs.extend_from_slice(&results.dirs);
+        self.files.extend_from_slice(&results.files);
+        self.symlinks.extend_from_slice(&results.symlinks);
+        self.other.extend_from_slice(&results.other);
         self.errors.extend_from_slice(&results.errors);
+    }
+
+    pub fn push_entry(&mut self, entry: ScandirResult) {
+        if entry.is_symlink() {
+            self.symlinks.push(entry.clone());
+        } else if entry.is_dir() {
+            self.dirs.push(entry.clone());
+        } else if entry.is_file() {
+            self.files.push(entry.clone());
+        } else {
+            self.other.push(entry.clone());
+        }
+        self.results.push(entry);
     }
 
     #[cfg(feature = "speedy")]

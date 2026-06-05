@@ -4,11 +4,12 @@ use std::time::Duration;
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
 use pyo3::types::{PyBytes, PyDict, PyType};
 use pyo3::{IntoPyObjectExt, prelude::*};
-use scandir::{ErrorsType, ScandirResult, ScandirResults};
+use scandir::{ErrorsType, ScandirResult};
 
 use crate::common::ReturnType;
 use crate::count::Statistics;
 use crate::direntry::{DirEntry, DirEntryExt};
+use crate::scandir::ScandirResults as PyScandirResults;
 
 fn result2py(result: &ScandirResult, py: Python) -> Option<Py<PyAny>> {
     match result {
@@ -24,7 +25,7 @@ fn result2py(result: &ScandirResult, py: Python) -> Option<Py<PyAny>> {
 #[derive(Debug)]
 pub struct Scandir {
     instance: scandir::Scandir,
-    entries: ScandirResults,
+    entries: scandir::ScandirResults,
 }
 
 #[pymethods]
@@ -71,7 +72,7 @@ impl Scandir {
                     }
                 },
             },
-            entries: ScandirResults::new(),
+            entries: scandir::ScandirResults::new(),
         })
     }
 
@@ -106,23 +107,21 @@ impl Scandir {
     }
 
     #[pyo3(signature = (timeout=None))]
-    pub fn collect(&mut self, timeout: Option<f64>, py: Python) -> PyResult<Option<(Vec<Py<PyAny>>, ErrorsType)>> {
+    pub fn collect(&mut self, timeout: Option<f64>, py: Python) -> PyResult<Option<PyScandirResults>> {
         match timeout {
             Some(secs) if secs > 0.0 => {
                 let duration = Duration::from_secs_f64(secs);
                 let result = py.detach(|| self.instance.collect_timeout(duration))?;
                 match result {
                     Some(entries) => {
-                        let results = entries.results.iter().filter_map(|r| result2py(r, py)).collect();
-                        Ok(Some((results, entries.errors)))
+                        Ok(Some(PyScandirResults::from_inner(entries)))
                     }
                     None => Ok(None),
                 }
             }
             _ => {
                 let entries = py.detach(|| self.instance.collect())?;
-                let results = entries.results.iter().filter_map(|r| result2py(r, py)).collect();
-                Ok(Some((results, entries.errors)))
+                Ok(Some(PyScandirResults::from_inner(entries)))
             }
         }
     }
@@ -138,14 +137,9 @@ impl Scandir {
     }
 
     #[pyo3(signature = (only_new=None))]
-    pub fn results(&mut self, only_new: Option<bool>, py: Python) -> (Vec<Py<PyAny>>, ErrorsType) {
+    pub fn results(&mut self, only_new: Option<bool>) -> PyScandirResults {
         let entries = self.instance.results(only_new.unwrap_or(true));
-        let results = entries
-            .results
-            .iter()
-            .filter_map(|e| result2py(e, py))
-            .collect();
-        (results, entries.errors)
+        PyScandirResults::from_inner(entries)
     }
 
     #[pyo3(signature = (only_new=None))]
@@ -184,21 +178,21 @@ impl Scandir {
     pub fn as_dict(&mut self, only_new: Option<bool>, py: Python) -> PyResult<Py<PyAny>> {
         let pyresults = PyDict::new(py);
         let entries = self.instance.results(only_new.unwrap_or(true));
-        for entry in entries.results {
+        for entry in entries.results.iter() {
             let _ = match entry {
                 ScandirResult::DirEntry(e) => {
                     let path = e.path.clone();
-                    pyresults.set_item(path, Py::new(py, DirEntry::from_owned(e)).unwrap().into_any())
+                    pyresults.set_item(path, Py::new(py, DirEntry::from_owned(e.clone())).unwrap().into_any())
                 }
                 ScandirResult::DirEntryExt(e) => {
                     let path = e.path.clone();
-                    pyresults.set_item(path, Py::new(py, DirEntryExt::from_owned(e)).unwrap().into_any())
+                    pyresults.set_item(path, Py::new(py, DirEntryExt::from_owned(e.clone())).unwrap().into_any())
                 }
                 ScandirResult::Error((path, e)) => pyresults.set_item(path, e),
             };
         }
         for error in entries.errors {
-            let _ = pyresults.set_item(error.0.into_py_any(py)?, error.1.into_py_any(py)?);
+            let _ = pyresults.set_item(error.0, error.1);
         }
         Ok(pyresults.into_any().unbind())
     }
