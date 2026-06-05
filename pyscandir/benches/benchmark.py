@@ -1,4 +1,36 @@
 # -*- coding: utf-8 -*-
+"""
+scandir-rs 专业 benchmark — 三种 API 性能对比
+==============================================
+
+API 区别：
+  Count   → 只计数，返回 Statistics（dirs/files/slinks/size 等统计数字）  类比: du -s
+  Walk    → 返回 (root, dirs, files) 元组，类似 os.walk                    类比: os.walk
+  Scandir → 返回 DirEntry 列表（路径、大小、时间戳、权限等完整元信息）       类比: os.scandir + stat
+
+返回类型：
+  Base (默认)  → 基础元数据（路径、大小、时间戳、文件类型）
+  Ext          → 扩展元数据（额外包含硬链接数、设备号、inode 等），需要额外系统调用
+
+使用方式：
+  Count(dir).collect()                               → Statistics
+  Count(dir, return_type=ReturnType.Ext).collect()   → Statistics (含 hlinks)
+
+  Walk(dir)                                          → 迭代 (root, dirs, files)
+  Walk(dir, return_type=ReturnType.Ext)              → 迭代 (root, dirs, files, symlinks, other, errors)
+  Walk(dir).collect()                                → Toc (dirs + files 列表)
+
+  Scandir(dir)                                       → 迭代 DirEntry
+  Scandir(dir, return_type=ReturnType.Ext)           → 迭代 DirEntryExt (含 st_mode/atime/ctime/mtime)
+  Scandir(dir).collect()                             → List[DirEntry]
+  Scandir(dir, return_type=ReturnType.Ext).collect() → List[DirEntryExt]
+
+用法：
+  python benchmark.py                 # 运行所有测试
+  python benchmark.py --count --walk  # 只运行 Count 和 Walk 测试
+
+参考：examples/count.py, examples/walk.py, examples/scandir.py
+"""
 
 import os
 import sys
@@ -69,10 +101,15 @@ def CreateTestData():
 
 
 def RunCountBenchmarks(dirName: str) -> Dict[str, float]:
+    """Count API — 只计数不存储 entry，内存占用最低，返回 Statistics"""
     print(f"Running Count benchmarks in directory: {dirName}")
+    # Count(dir).collect() → Statistics { dirs, files, slinks, size, ... }
     print(scandir.Count(dirName).collect())
+    # Count(dir, return_type=ReturnType.Ext).collect() → Statistics { ..., hlinks, devices, pipes }
     stats = json.loads(scandir.Count(dirName, return_type=scandir.ReturnType.Ext).collect().to_json())
     print(stats)
+
+    # Count.collect (Base) — 基础统计
     dtScandirCountCollect = timeit.timeit(
         f"""
 scandir.Count('{dirName}').collect()
@@ -82,6 +119,7 @@ scandir.Count('{dirName}').collect()
     ) / 3
     print(f"scandir.Count (collect): {dtScandirCountCollect}")
 
+    # Count.collect (Ext) — 扩展统计（含硬链接数等）
     dtScandirCountCollectExt = timeit.timeit(
         f"""
 scandir.Count('{dirName}', return_type=scandir.ReturnType.Ext).collect()
@@ -97,7 +135,10 @@ scandir.Count('{dirName}', return_type=scandir.ReturnType.Ext).collect()
 
 
 def RunWalkBenchmarks(dirName: str) -> Dict[str, float]:
+    """Walk API — 类似 os.walk，返回 (root, dirs, files) 元组"""
     print(f"Running Walk benchmarks in directory: {dirName}")
+
+    # Python 对照组：os.walk（不获取 stat）
     dtOsWalk = timeit.timeit(
         f"""
 for root, dirs, files in os.walk('{dirName}'):
@@ -108,6 +149,7 @@ for root, dirs, files in os.walk('{dirName}'):
     ) / 3
     print(f"os.walk {dtOsWalk}")
 
+    # Python 对照组：os.walk + os.stat（模拟 Ext 模式）
     dtOsWalkExt = timeit.timeit(
         f"""
 dirStats = dict()
@@ -131,6 +173,7 @@ for root, dirs, files in os.walk('{dirName}'):
     ) / 3
     print(f"os.walk(Ext) {dtOsWalkExt}")
 
+    # Walk.iter (Base) — Walk(dir) → 迭代 (root, dirs, files)
     dtScandirWalkIter = timeit.timeit(
         f"""
 for result in scandir.Walk('{dirName}'):
@@ -141,6 +184,7 @@ for result in scandir.Walk('{dirName}'):
     ) / 3
     print(f"scandir.Walk (iter): {dtScandirWalkIter}")
 
+    # Walk.iter (Ext) — Walk(dir, return_type=ReturnType.Ext) → 迭代 (root, dirs, files, symlinks, other, errors)
     dtScandirWalkIterExt = timeit.timeit(
         f"""
 for result in scandir.Walk('{dirName}', return_type=scandir.ReturnType.Ext):
@@ -151,6 +195,7 @@ for result in scandir.Walk('{dirName}', return_type=scandir.ReturnType.Ext):
     ) / 3
     print(f"scandir.Walk(Ext) (iter): {dtScandirWalkIterExt}")
 
+    # Walk.collect (Base) — Walk(dir).collect() → Toc { dirs: [...], files: [...] }
     dtScandirWalkCollect = timeit.timeit(
         f"""
 toc = scandir.Walk('{dirName}').collect()
@@ -160,6 +205,7 @@ toc = scandir.Walk('{dirName}').collect()
     ) / 3
     print(f"scandir.Walk (collect): {dtScandirWalkCollect}")
 
+    # Walk.collect (Ext) — Walk(dir, return_type=ReturnType.Ext).collect() → Toc (含扩展信息)
     dtScandirWalkCollectExt = timeit.timeit(
         f"""
 toc = scandir.Walk('{dirName}', return_type=scandir.ReturnType.Ext).collect()
@@ -178,7 +224,10 @@ toc = scandir.Walk('{dirName}', return_type=scandir.ReturnType.Ext).collect()
 
 
 def RunScandirBenchmarks(dirName: str) -> Dict[str, float]:
+    """Scandir API — 返回每条 entry 的完整元信息（DirEntry/DirEntryExt）"""
     print(f"Running Scandir benchmarks in directory: {dirName}")
+
+    # Python 对照组：os.scandir 递归 + stat（最佳 Python 原生方案）
     dtOsScandir = timeit.timeit(
         f"""
 def scantree(path):
@@ -214,6 +263,7 @@ for entry in scantree(os.path.expanduser('{dirName}')):
     ) / 3
     print(f"scantree (os.scandir): {dtOsScandir}")
 
+    # Scandir.iter (Base) — Scandir(dir) → 迭代 DirEntry（路径、大小、时间戳、文件类型）
     dtScandirScandirIter = timeit.timeit(
         f"""
 for result in scandir.Scandir('{dirName}'):
@@ -224,6 +274,7 @@ for result in scandir.Scandir('{dirName}'):
     ) / 3
     print(f"scandir.Scandir (iter): {dtScandirScandirIter}")
 
+    # Scandir.iter (Ext) — Scandir(dir, return_type=ReturnType.Ext) → 迭代 DirEntryExt
     dtScandirScandirIterExt = timeit.timeit(
         f"""
 for result in scandir.Scandir('{dirName}', return_type=scandir.ReturnType.Ext):
@@ -234,6 +285,7 @@ for result in scandir.Scandir('{dirName}', return_type=scandir.ReturnType.Ext):
     ) / 3
     print(f"scandir.Scandir(Ext) (iter): {dtScandirScandirIterExt}")
 
+    # Scandir.collect (Base) — Scandir(dir).collect() → List[DirEntry]（全量收集到内存）
     dtScandirScandirCollect = timeit.timeit(
         f"""
 entries = scandir.Scandir('{dirName}').collect()
@@ -243,6 +295,7 @@ entries = scandir.Scandir('{dirName}').collect()
     ) / 3
     print(f"scandir.Scandir (collect): {dtScandirScandirCollect}")
 
+    # Scandir.collect (Ext) — Scandir(dir, return_type=ReturnType.Ext).collect() → List[DirEntryExt]
     dtScandirScandirCollectExt = timeit.timeit(
         f"""
 entries = scandir.Scandir('{dirName}', return_type=scandir.ReturnType.Ext).collect()
