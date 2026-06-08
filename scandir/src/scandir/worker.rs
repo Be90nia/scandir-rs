@@ -421,11 +421,10 @@ impl Scandir {
                 if remaining.is_zero() {
                     return Ok(None);
                 }
-                let entries = self.receive_all_timeout(remaining.min(Duration::from_millis(100)));
-                let _ = entries;
+                let _ = self.receive_all_timeout(remaining.min(Duration::from_millis(100)));
             }
         }
-        Ok(Some(self.results(true)))
+        Ok(Some(self.results(false)))
     }
 
     pub fn has_results(&mut self, only_new: bool) -> bool {
