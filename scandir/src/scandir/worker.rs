@@ -242,7 +242,7 @@ impl Scandir {
                 follow_links: false,
                 return_type: ReturnType::Base,
             },
-            store: store.unwrap_or(true),
+            store: store.unwrap_or(false),
             entries: ScandirResults::new(),
             duration: Arc::new(Mutex::new(0.0)),
             finished: Arc::new(AtomicBool::new(false)),
@@ -401,7 +401,18 @@ impl Scandir {
             if !self.busy() {
                 self.start()?;
             }
+            // Drain channel while waiting for worker thread to finish
+            // to prevent deadlock with bounded channel (store=false + bounded)
+            let mut collected = ScandirResults::new();
+            while !self.finished() {
+                let batch = self.receive_all_timeout(Duration::from_millis(100));
+                collected.extend(&batch);
+            }
             self.join();
+            // Return combined: collected from drain + any remaining in channel
+            let final_results = self.results(true);
+            collected.extend(&final_results);
+            return Ok(collected);
         }
         Ok(self.results(true))
     }
@@ -468,7 +479,7 @@ impl Scandir {
             self.entries.extend(&results);
         }
         if !only_new && self.store {
-            return self.entries.clone();
+            return std::mem::take(&mut self.entries);
         }
         results
     }
