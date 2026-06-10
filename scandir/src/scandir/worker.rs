@@ -17,7 +17,7 @@ use crate::count::Statistics;
 use crate::scandir::{ScandirResult, ScandirResults};
 use crate::{
     DirEntry, DirEntryExt, DirEntryType, ErrorsType, Filter, Options, ReturnType,
-    check_and_expand_path, filter_children, get_root_path_len, start,
+    check_and_expand_path, create_filter, filter_children, get_root_path_len, start,
 };
 
 #[inline]
@@ -139,6 +139,7 @@ fn create_entry(
     entry
 }
 
+/// Streaming mode worker: sends entries through channel for incremental consumption.
 fn worker_thread(
     dir_entry: DirEntryType,
     options: Options,
@@ -207,6 +208,89 @@ fn worker_thread(
             }
         }
     }
+}
+
+/// Direct mode worker: accumulates results in-process, returns via JoinHandle.
+/// Eliminates channel overhead — zero additional memory for channel buffering.
+fn worker_thread_direct(
+    dir_entry: DirEntryType,
+    options: Options,
+    filter: Option<Filter>,
+    stop: Arc<AtomicBool>,
+) -> ScandirResults {
+    let root_path_len = get_root_path_len(&options.root_path);
+    let return_type = options.return_type;
+
+    // If root path points to a file then return just this one entry
+    if !dir_entry.file_type.is_dir() {
+        let mut results = ScandirResults::new();
+        results.push_entry(create_entry(root_path_len, &return_type, &dir_entry));
+        return results;
+    }
+
+    let max_file_cnt = options.max_file_cnt;
+    let mut file_cnt = 0;
+    let mut entries = ScandirResults::new();
+
+    // Collect filter errors via Arc<Mutex> (shared between callback and main loop)
+    let filter_errors: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
+    let filter_errors_clone = filter_errors.clone();
+
+    for result in WalkDirGeneric::new(&options.root_path)
+        .skip_hidden(options.skip_hidden)
+        .follow_links(options.follow_links)
+        .sort(options.sorted)
+        .max_depth(options.max_depth)
+        .read_metadata(true)
+        .read_metadata_ext(return_type == ReturnType::Ext)
+        .read_hardlink_info(return_type == ReturnType::Ext)
+        .process_read_dir(move |_, root_dir, _, children| {
+            if let Some(root_dir) = root_dir.to_str() {
+                if root_dir.len() + 1 < root_path_len {
+                    return;
+                }
+            } else {
+                return;
+            }
+            let errs = filter_children(children, &filter, root_path_len);
+            if !errs.is_empty() {
+                if let Ok(mut guard) = filter_errors_clone.lock() {
+                    guard.extend(errs);
+                }
+            }
+            // Only filter children here — do NOT send through channel
+            // The outer for loop will yield each DirEntry
+        })
+    {
+        if stop.load(Ordering::Relaxed) {
+            break;
+        }
+        match result {
+            Ok(dir_entry) => {
+                entries.push_entry(create_entry(root_path_len, &return_type, &dir_entry));
+                if !dir_entry.file_type.is_dir() {
+                    file_cnt += 1;
+                    if max_file_cnt > 0 && file_cnt > max_file_cnt {
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                entries.errors.push((String::new(), e.to_string()));
+            }
+        }
+    }
+
+    // Merge filter errors collected in callback
+    if let Ok(mut guard) = filter_errors.lock() {
+        let errs: Vec<String> = guard.drain(..).collect();
+        entries
+            .errors
+            .extend(errs.into_iter().map(|e| (String::new(), e)));
+    }
+
+    entries
 }
 
 /// Class for iterating a file tree and returning `Entry` objects
@@ -396,14 +480,49 @@ impl Scandir {
         false
     }
 
+    /// Collect all results using direct mode (no channel overhead).
+    /// Worker thread accumulates results in-process and returns via JoinHandle.
+    /// This eliminates channel memory accumulation that caused unbounded growth.
     pub fn collect(&mut self) -> Result<ScandirResults, Error> {
-        if !self.finished() {
-            if !self.busy() {
-                self.start()?;
-            }
-            self.join();
+        if self.options.return_type > ReturnType::Ext {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "Parameter return_type has invalid value",
+            ));
         }
-        Ok(self.results(true))
+        if self.busy() {
+            return Err(Error::other("Busy"));
+        }
+        self.clear();
+
+        let filter = create_filter(&self.options)?;
+        let options = self.options.clone();
+        let stop = self.stop.clone();
+        let duration = self.duration.clone();
+        let finished = self.finished.clone();
+
+        stop.store(false, Ordering::Relaxed);
+        let dir_entry: DirEntryType = jwalk_meta::DirEntry::from_path(
+            0,
+            &options.root_path,
+            true,
+            true,
+            options.follow_links,
+            Some(Arc::new(Vec::new())),
+        )?;
+
+        let start_time = Instant::now();
+        let handle = thread::spawn(move || {
+            let result = worker_thread_direct(dir_entry, options, filter, stop);
+            *duration.lock() = start_time.elapsed().as_secs_f64();
+            finished.store(true, Ordering::Relaxed);
+            result
+        });
+
+        let results = handle
+            .join()
+            .map_err(|_| Error::other("Worker thread panicked"))?;
+        Ok(results)
     }
 
     /// Collect results with a timeout for time-bounded operation.

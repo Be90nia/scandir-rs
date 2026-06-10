@@ -17,7 +17,7 @@ use speedy::Writable;
 use crate::count::Statistics;
 use crate::{
     DirEntryType, ErrorsType, Filter, Options, ReturnType, Toc, check_and_expand_path,
-    filter_children, get_root_path_len, start,
+    create_filter, filter_children, get_root_path_len, start,
 };
 
 #[inline]
@@ -35,6 +35,7 @@ fn update_toc(dir_entry: &DirEntryType, toc: &mut Toc) {
     }
 }
 
+/// Streaming mode worker: sends (directory, Toc) tuples through channel.
 fn worker_thread(
     dir_entry: DirEntryType,
     options: Options,
@@ -95,6 +96,110 @@ fn worker_thread(
             }
         }
     }
+}
+
+/// Direct mode worker: accumulates Toc results in-process, returns via JoinHandle.
+/// Eliminates channel overhead — zero additional memory for channel buffering.
+/// Uses Arc<Mutex<Vec>> to share results between process_read_dir callback and this function.
+fn worker_thread_direct(
+    dir_entry: DirEntryType,
+    options: Options,
+    filter: Option<Filter>,
+    stop: Arc<AtomicBool>,
+) -> Vec<(String, Toc)> {
+    let root_path_len = get_root_path_len(&options.root_path);
+    // If root path points to a file then return just this one entry
+    if !dir_entry.file_type.is_dir() {
+        let mut toc = Toc::new();
+        update_toc(&dir_entry, &mut toc);
+        return vec![("".to_owned(), toc)];
+    }
+
+    let max_file_cnt = options.max_file_cnt;
+    let mut file_cnt = 0;
+
+    // Shared results vector — callback pushes, we read after iteration completes
+    let entries: Arc<std::sync::Mutex<Vec<(String, Toc)>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
+    let entries_clone = entries.clone();
+
+    // Collect filter errors separately
+    let filter_errors: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
+    let filter_errors_clone = filter_errors.clone();
+
+    for result in WalkDirGeneric::new(&options.root_path)
+        .skip_hidden(options.skip_hidden)
+        .follow_links(options.follow_links)
+        .sort(options.sorted)
+        .max_depth(options.max_depth)
+        .process_read_dir(move |_, root_dir, _, children| {
+            let root_dir_str = root_dir.to_str();
+            if root_dir_str.is_none() {
+                return;
+            }
+            let root_dir_str = root_dir_str.unwrap();
+            if root_dir_str.len() + 1 < root_path_len {
+                return;
+            }
+            let errs = filter_children(children, &filter, root_path_len);
+            if !errs.is_empty() {
+                if let Ok(mut guard) = filter_errors_clone.lock() {
+                    guard.extend(errs);
+                }
+            }
+            let mut toc = Toc::new();
+            children.iter_mut().for_each(|dir_entry_result| {
+                match dir_entry_result {
+                    Ok(dir_entry) => update_toc(dir_entry, &mut toc),
+                    Err(e) => toc.errors.push(e.to_string()),
+                }
+            });
+            let key = if root_dir_str.len() > root_path_len {
+                root_dir_str[root_path_len..].to_owned()
+            } else {
+                String::new()
+            };
+            if let Ok(mut guard) = entries_clone.lock() {
+                guard.push((key, toc));
+            }
+        })
+    {
+        if stop.load(Ordering::Relaxed) {
+            break;
+        }
+        if let Ok(dir_entry) = result
+            && !dir_entry.file_type.is_dir()
+        {
+            file_cnt += 1;
+            if max_file_cnt > 0 && file_cnt > max_file_cnt {
+                break;
+            }
+        }
+    }
+
+    // Merge filter errors into the root Toc
+    if let Ok(mut guard) = filter_errors.lock() {
+        if !guard.is_empty() {
+            let errs: Vec<String> = guard.drain(..).collect();
+            if let Ok(mut entries_guard) = entries.lock() {
+                // Add errors to the first Toc entry (root), or create one
+                if let Some(first) = entries_guard.first_mut() {
+                    first.1.errors.extend(errs);
+                } else {
+                    let mut toc = Toc::new();
+                    toc.errors.extend(errs);
+                    entries_guard.push((String::new(), toc));
+                }
+            }
+        }
+    }
+
+    // Unwrap the Arc since we're the sole owner after worker completes
+    Arc::try_unwrap(entries)
+        .unwrap()
+        .into_inner()
+        .unwrap()
 }
 
 #[derive(Debug)]
@@ -329,15 +434,46 @@ impl Walk {
         entries
     }
 
+    /// Collect all results using direct mode (no channel overhead).
+    /// Worker thread accumulates results in-process and returns via JoinHandle.
+    /// This eliminates channel memory accumulation that caused unbounded growth.
     pub fn collect(&mut self) -> Result<Toc, Error> {
-        if !self.finished() {
-            if !self.busy() {
-                self.start()?;
-            }
-            self.join();
+        if self.busy() {
+            return Err(Error::other("Busy"));
         }
+        self.clear();
+
+        let filter = create_filter(&self.options)?;
+        let options = self.options.clone();
+        let stop = self.stop.clone();
+        let duration = self.duration.clone();
+        let finished = self.finished.clone();
+
+        stop.store(false, Ordering::Relaxed);
+        let dir_entry: DirEntryType = jwalk_meta::DirEntry::from_path(
+            0,
+            &options.root_path,
+            true,
+            true,
+            options.follow_links,
+            Some(Arc::new(Vec::new())),
+        )?;
+
+        let start_time = Instant::now();
+        let handle = thread::spawn(move || {
+            let result = worker_thread_direct(dir_entry, options, filter, stop);
+            *duration.lock() = start_time.elapsed().as_secs_f64();
+            finished.store(true, Ordering::Relaxed);
+            result
+        });
+
+        let raw_entries = handle
+            .join()
+            .map_err(|_| Error::other("Worker thread panicked"))?;
+
+        // Merge all per-directory Tocs into a single Toc
         let mut toc = Toc::new();
-        for (root_dir, dir_toc) in self.results(true) {
+        for (root_dir, dir_toc) in raw_entries {
             toc.extend(&root_dir, &dir_toc);
         }
         Ok(toc)
