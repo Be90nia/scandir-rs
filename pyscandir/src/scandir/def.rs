@@ -155,22 +155,22 @@ impl ScandirResults {
 
     #[getter]
     fn dirs(&self, py: Python) -> Vec<Py<PyAny>> {
-        results_to_py(&self.inner.dirs, py)
+        results_to_py(&self.inner.dirs().cloned().collect::<Vec<_>>(), py)
     }
 
     #[getter]
     fn files(&self, py: Python) -> Vec<Py<PyAny>> {
-        results_to_py(&self.inner.files, py)
+        results_to_py(&self.inner.files().cloned().collect::<Vec<_>>(), py)
     }
 
     #[getter]
     fn symlinks(&self, py: Python) -> Vec<Py<PyAny>> {
-        results_to_py(&self.inner.symlinks, py)
+        results_to_py(&self.inner.symlinks().cloned().collect::<Vec<_>>(), py)
     }
 
     #[getter]
     fn other(&self, py: Python) -> Vec<Py<PyAny>> {
-        results_to_py(&self.inner.other, py)
+        results_to_py(&self.inner.other().cloned().collect::<Vec<_>>(), py)
     }
 
     #[getter]
