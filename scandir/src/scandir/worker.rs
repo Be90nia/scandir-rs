@@ -401,18 +401,7 @@ impl Scandir {
             if !self.busy() {
                 self.start()?;
             }
-            // Drain channel while waiting for worker thread to finish
-            // to prevent deadlock with bounded channel (store=false + bounded)
-            let mut collected = ScandirResults::new();
-            while !self.finished() {
-                let batch = self.receive_all_timeout(Duration::from_millis(100));
-                collected.extend(&batch);
-            }
             self.join();
-            // Return combined: collected from drain + any remaining in channel
-            let final_results = self.results(true);
-            collected.extend(&final_results);
-            return Ok(collected);
         }
         Ok(self.results(true))
     }

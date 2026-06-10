@@ -330,21 +330,13 @@ impl Walk {
     }
 
     pub fn collect(&mut self) -> Result<Toc, Error> {
-        let mut toc = Toc::new();
         if !self.finished() {
             if !self.busy() {
                 self.start()?;
             }
-            // Drain channel while waiting for worker thread to finish
-            // to prevent deadlock with bounded channel
-            while !self.finished() {
-                let batch = self.receive_all_timeout(Duration::from_millis(100));
-                for (root_dir, dir_toc) in batch {
-                    toc.extend(&root_dir, &dir_toc);
-                }
-            }
             self.join();
         }
+        let mut toc = Toc::new();
         for (root_dir, dir_toc) in self.results(true) {
             toc.extend(&root_dir, &dir_toc);
         }
