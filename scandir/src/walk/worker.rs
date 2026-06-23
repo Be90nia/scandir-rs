@@ -563,7 +563,7 @@ impl Walk {
     }
 
     pub fn has_errors(&mut self) -> bool {
-        !self.has_errors
+        self.has_errors
     }
 
     pub fn errors_cnt(&mut self) -> usize {
