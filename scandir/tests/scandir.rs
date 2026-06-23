@@ -2,7 +2,9 @@
 
 use std::io::Error;
 
-use scandir::{ReturnType, Scandir, ScandirResult};
+use scandir::{ReturnType, Scandir};
+#[cfg(target_os = "linux")]
+use scandir::ScandirResult;
 
 mod common;
 

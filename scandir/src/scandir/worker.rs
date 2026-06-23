@@ -522,6 +522,9 @@ impl Scandir {
         let results = handle
             .join()
             .map_err(|_| Error::other("Worker thread panicked"))?;
+
+        // bs1: write back to self so collect mode API (has_errors/errors_cnt/errors) works
+        self.entries = results.clone();
         Ok(results)
     }
 

@@ -470,10 +470,14 @@ impl Walk {
             .join()
             .map_err(|_| Error::other("Worker thread panicked"))?;
 
+        // bs1: write back to self so collect mode API (has_errors/errors_cnt/errors/statistics) works
+        self.entries = raw_entries;
+        self.has_errors = self.entries.iter().any(|(_, t)| !t.errors.is_empty());
+
         // Merge all per-directory Tocs into a single Toc
         let mut toc = Toc::new();
-        for (root_dir, dir_toc) in raw_entries {
-            toc.extend(&root_dir, &dir_toc);
+        for (root_dir, dir_toc) in &self.entries {
+            toc.extend(root_dir, dir_toc);
         }
         Ok(toc)
     }
