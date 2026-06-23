@@ -93,8 +93,10 @@ fn create_entry(
         }
     }
     let is_file = file_type.is_file();
-    let path_str = dir_entry.parent_path.to_str().unwrap();
-    let file_name = dir_entry.file_name.to_str().unwrap();
+    let path_str = dir_entry.parent_path.to_string_lossy();
+    let file_name = dir_entry.file_name.to_string_lossy();
+    let path_str: &str = &path_str;
+    let file_name: &str = &file_name;
     let path = if path_str.len() > root_path_len {
         let relative = &path_str[root_path_len..];
         let mut p = String::with_capacity(relative.len() + 1 + file_name.len());

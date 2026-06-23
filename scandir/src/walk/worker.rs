@@ -23,7 +23,7 @@ use crate::{
 #[inline]
 fn update_toc(dir_entry: &DirEntryType, toc: &mut Toc) {
     let file_type = dir_entry.file_type;
-    let key = dir_entry.file_name.to_str().unwrap().to_owned();
+    let key = dir_entry.file_name.to_string_lossy().into_owned();
     if file_type.is_symlink() {
         toc.symlinks.push(key);
     } else if file_type.is_dir() {
