@@ -16,7 +16,7 @@ fn test_scandir() -> Result<(), Error> {
     #[cfg(unix)]
     assert_eq!(210, entries.results.len());
     #[cfg(windows)]
-    assert_eq!(125, entries.results.len());
+    assert_eq!(126, entries.results.len());
     assert_eq!(0, entries.errors.len());
     #[cfg(target_os = "linux")]
     match entries.results.first().unwrap() {
@@ -47,8 +47,9 @@ fn test_scandir_skip_hidden() -> Result<(), Error> {
     #[cfg(unix)]
     assert_eq!(192, entries.results.len());
     #[cfg(windows)]
-    assert_eq!(107, entries.results.len());
+    assert_eq!(108, entries.results.len());
     assert_eq!(0, entries.errors.len());
+    #[cfg(target_os = "linux")]
     match entries.results.first().unwrap() {
         ScandirResult::DirEntry(d) => {
             assert!(["dir1", "dir2", "dir3"].contains(&d.path.as_str()));
@@ -77,8 +78,9 @@ fn test_scandir_extended() -> Result<(), Error> {
     #[cfg(unix)]
     assert_eq!(210, entries.results.len());
     #[cfg(windows)]
-    assert_eq!(125, entries.results.len());
+    assert_eq!(126, entries.results.len());
     assert_eq!(0, entries.errors.len());
+    #[cfg(target_os = "linux")]
     match entries.results.first().unwrap() {
         ScandirResult::DirEntryExt(d) => {
             assert!(["dir1", "dir2", "dir3"].contains(&d.path.as_str()));
@@ -107,7 +109,7 @@ fn test_scandir_follow_links() -> Result<(), Error> {
     #[cfg(unix)]
     assert_eq!(210, entries.results.len());
     #[cfg(windows)]
-    assert_eq!(233, entries.results.len());
+    assert_eq!(234, entries.results.len());
     assert_eq!(0, entries.errors.len());
     #[cfg(target_os = "linux")]
     match entries.results.first().unwrap() {
@@ -133,11 +135,11 @@ fn test_scandir_categorizes_dirs_and_files() -> Result<(), Error> {
     #[cfg(windows)]
     let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 3)?;
     let entries = Scandir::new(temp_dir.path(), Some(true))?.collect()?;
-    assert!(!entries.dirs.is_empty(), "dirs should contain subdirectories");
-    assert!(!entries.files.is_empty(), "files should contain regular files");
+    assert!(entries.dirs().next().is_some(), "dirs should contain subdirectories");
+    assert!(entries.files().next().is_some(), "files should contain regular files");
     assert_eq!(
         entries.results.len(),
-        entries.dirs.len() + entries.files.len() + entries.symlinks.len() + entries.other.len(),
+        entries.dirs().count() + entries.files().count() + entries.symlinks().count() + entries.other().count(),
         "results total should equal sum of categorized fields"
     );
     assert_eq!(0, entries.errors.len());
@@ -151,13 +153,13 @@ fn test_scandir_categorization_types() -> Result<(), Error> {
     #[cfg(windows)]
     let temp_dir = common::create_temp_file_tree(3, 3, 4, 5, 3)?;
     let entries = Scandir::new(temp_dir.path(), Some(true))?.collect()?;
-    for entry in &entries.dirs {
+    for entry in entries.dirs() {
         assert!(entry.is_dir(), "entry in dirs should be a directory");
     }
-    for entry in &entries.files {
+    for entry in entries.files() {
         assert!(entry.is_file(), "entry in files should be a file");
     }
-    for entry in &entries.symlinks {
+    for entry in entries.symlinks() {
         assert!(entry.is_symlink(), "entry in symlinks should be a symlink");
     }
     common::cleanup(temp_dir)
@@ -174,8 +176,8 @@ fn test_scandir_results_backward_compat() -> Result<(), Error> {
     #[cfg(unix)]
     assert_eq!(210, entries.results.len());
     #[cfg(windows)]
-    assert_eq!(125, entries.results.len());
-    let categorized = entries.dirs.len() + entries.files.len() + entries.symlinks.len() + entries.other.len();
+    assert_eq!(126, entries.results.len());
+    let categorized = entries.dirs().count() + entries.files().count() + entries.symlinks().count() + entries.other().count();
     assert_eq!(entries.results.len(), categorized, "sum of categorized should equal results");
     common::cleanup(temp_dir)
 }

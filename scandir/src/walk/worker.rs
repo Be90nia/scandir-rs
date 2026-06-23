@@ -195,11 +195,10 @@ fn worker_thread_direct(
         }
     }
 
-    // Unwrap the Arc since we're the sole owner after worker completes
-    Arc::try_unwrap(entries)
-        .unwrap()
-        .into_inner()
-        .unwrap()
+    // Lock + take avoids Arc::try_unwrap refcount assumption: jwalk-meta's
+    // iterator may retain the process_read_dir closure, leaving refcount > 1.
+    let mut guard = entries.lock().unwrap_or_else(|e| e.into_inner());
+    std::mem::take(&mut *guard)
 }
 
 #[derive(Debug)]
