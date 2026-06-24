@@ -333,7 +333,7 @@ pub struct Scandir {
     options: Options,
     store: bool,
     // Results
-    entries: ScandirResults,
+    entries: Arc<ScandirResults>,
     duration: Arc<Mutex<f64>>,
     finished: Arc<AtomicBool>,
     // Internal
@@ -360,7 +360,7 @@ impl Scandir {
                 return_type: ReturnType::Base,
             },
             store: store.unwrap_or(false),
-            entries: ScandirResults::new(),
+            entries: Arc::new(ScandirResults::new()),
             duration: Arc::new(Mutex::new(0.0)),
             finished: Arc::new(AtomicBool::new(false)),
             thr: None,
@@ -467,7 +467,7 @@ impl Scandir {
     }
 
     pub fn clear(&mut self) {
-        self.entries.clear();
+        Arc::make_mut(&mut self.entries).clear();
         *self.duration.lock() = 0.0;
     }
 
@@ -516,7 +516,7 @@ impl Scandir {
     /// Collect all results using direct mode (no channel overhead).
     /// Worker thread accumulates results in-process and returns via JoinHandle.
     /// This eliminates channel memory accumulation that caused unbounded growth.
-    pub fn collect(&mut self) -> Result<ScandirResults, Error> {
+    pub fn collect(&mut self) -> Result<Arc<ScandirResults>, Error> {
         if self.options.return_type > ReturnType::Ext {
             return Err(Error::new(
                 ErrorKind::InvalidInput,
@@ -557,8 +557,10 @@ impl Scandir {
             .map_err(|_| Error::other("Worker thread panicked"))?;
 
         // bs1: write back to self so collect mode API (has_errors/errors_cnt/errors) works
-        self.entries = results.clone();
-        Ok(results)
+        // 方案D: Arc 共享 ownership, clone O(1) 替代 44万 entry deep clone
+        let arc = Arc::new(results);
+        self.entries = arc.clone();
+        Ok(arc)
     }
 
     /// Collect results with a timeout for time-bounded operation.
@@ -621,10 +623,10 @@ impl Scandir {
             }
         }
         if self.store {
-            self.entries.extend(&results);
+            Arc::make_mut(&mut self.entries).extend(&results);
         }
         if !only_new && self.store {
-            return std::mem::take(&mut self.entries);
+            return std::mem::take(Arc::make_mut(&mut self.entries));
         }
         results
     }
@@ -668,7 +670,7 @@ impl Scandir {
             }
         }
         if self.store {
-            self.entries.extend(&results);
+            Arc::make_mut(&mut self.entries).extend(&results);
         }
         results
     }

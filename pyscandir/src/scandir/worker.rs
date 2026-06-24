@@ -1,5 +1,6 @@
 use std::io::ErrorKind;
 use std::time::Duration;
+use std::sync::Arc;
 
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
 use pyo3::types::{PyBytes, PyDict, PyType};
@@ -120,7 +121,7 @@ impl Scandir {
                 let result = py.detach(|| self.instance.collect_timeout(duration))?;
                 match result {
                     Some(entries) => {
-                        Ok(Some(PyScandirResults::from_inner(entries)))
+                Ok(Some(PyScandirResults::from_inner(Arc::new(entries))))
                     }
                     None => Ok(None),
                 }
@@ -145,7 +146,7 @@ impl Scandir {
     #[pyo3(signature = (only_new=None))]
     pub fn results(&mut self, only_new: Option<bool>) -> PyScandirResults {
         let entries = self.instance.results(only_new.unwrap_or(true));
-        PyScandirResults::from_inner(entries)
+        PyScandirResults::from_inner(Arc::new(entries))
     }
 
     #[pyo3(signature = (only_new=None))]

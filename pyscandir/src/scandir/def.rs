@@ -5,6 +5,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3::types::PyDict;
 
+use std::sync::Arc;
 use crate::direntry::DirEntryExt;
 
 #[pyclass(from_py_object)]
@@ -129,22 +130,20 @@ fn result2py_inner(result: &scandir::ScandirResult, py: Python) -> Option<Py<PyA
 #[pyclass(skip_from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ScandirResults {
-    inner: scandir::ScandirResults,
+    inner: Arc<scandir::ScandirResults>,
 }
 
+
 impl ScandirResults {
-    pub fn from_inner(inner: scandir::ScandirResults) -> Self {
+    pub fn from_inner(inner: Arc<scandir::ScandirResults>) -> Self {
         ScandirResults { inner }
     }
 
     pub fn inner(&self) -> &scandir::ScandirResults {
         &self.inner
     }
-
-    pub fn inner_mut(&mut self) -> &mut scandir::ScandirResults {
-        &mut self.inner
-    }
 }
+
 
 #[pymethods]
 impl ScandirResults {

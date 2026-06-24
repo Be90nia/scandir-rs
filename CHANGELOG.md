@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.8] - 2026-06-24
+
+### Performance
+
+- `Scandir.collect()` eliminates ~440k-entry deep clone by wrapping the `entries` field in `Arc<ScandirResults>` (H5 regression fix from 3.0.7). Bench (10-run median, 498k files): `Scandir.collect` **-6.4%**, `Scandir(Ext).collect` **-5.2%**, `Scandir.iter` no regression (-2.1%).
+
+### Changed
+
+- **BREAKING** (Rust API only, Python unaffected): `scandir::Scandir::collect()` return type `ScandirResults` → `Arc<ScandirResults>`. Rust crate consumers must update.
+- **BREAKING** (Rust API only): `pyscandir::ScandirResults::inner_mut()` removed (zero external callers; cdylib does not export Rust API).
+
 ## [3.0.7] - 2026-06-24
 
 ### Fixed
