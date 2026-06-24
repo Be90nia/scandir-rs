@@ -59,6 +59,7 @@ fn worker_thread(
     let max_file_cnt = options.max_file_cnt;
     let mut file_cnt = 0;
     let stop_cb = stop.clone();
+    let tx_outer = tx.clone(); // H3: outer for-loop needs Sender; process_read_dir closure still moves original `tx`
     for result in WalkDirGeneric::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
         .follow_links(options.follow_links)
@@ -101,12 +102,24 @@ fn worker_thread(
         if stop.load(Ordering::Relaxed) {
             break;
         }
-        if let Ok(dir_entry) = result
-            && !dir_entry.file_type.is_dir()
-        {
-            file_cnt += 1;
-            if max_file_cnt > 0 && file_cnt > max_file_cnt {
-                break;
+        match result {
+            Ok(dir_entry) => {
+                if !dir_entry.file_type.is_dir() {
+                    file_cnt += 1;
+                    if max_file_cnt > 0 && file_cnt > max_file_cnt {
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                // H3: outer iterator yielded I/O error (root path / boundary).
+                // process_read_dir callback handles per-entry errors; forward
+                // this rare outer error as an errors-only Toc.
+                let mut err_toc = Toc::new();
+                err_toc.errors.push(e.to_string());
+                if tx_outer.send((String::new(), err_toc)).is_err() {
+                    break;
+                }
             }
         }
     }
@@ -186,12 +199,21 @@ fn worker_thread_direct(
         if stop.load(Ordering::Relaxed) {
             break;
         }
-        if let Ok(dir_entry) = result
-            && !dir_entry.file_type.is_dir()
-        {
-            file_cnt += 1;
-            if max_file_cnt > 0 && file_cnt > max_file_cnt {
-                break;
+        match result {
+            Ok(dir_entry) => {
+                if !dir_entry.file_type.is_dir() {
+                    file_cnt += 1;
+                    if max_file_cnt > 0 && file_cnt > max_file_cnt {
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                // H3: forward outer iterator error into filter_errors (capped at 1000).
+                let mut guard = results.lock();
+                if guard.1.len() < 1000 {
+                    guard.1.push(e.to_string());
+                }
             }
         }
     }

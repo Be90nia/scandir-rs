@@ -171,6 +171,7 @@ fn worker_thread(
     let max_file_cnt = options.max_file_cnt;
     let mut file_cnt = 0;
     let stop_cb = stop.clone();
+    let tx_outer = tx.clone(); // H3: outer for-loop needs Sender; process_read_dir closure still moves original `tx`
 
     for result in WalkDirGeneric::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
@@ -219,12 +220,21 @@ fn worker_thread(
         if stop.load(Ordering::Relaxed) {
             break;
         }
-        if let Ok(dir_entry) = result
-            && !dir_entry.file_type.is_dir()
-        {
-            file_cnt += 1;
-            if max_file_cnt > 0 && file_cnt > max_file_cnt {
-                break;
+        match result {
+            Ok(dir_entry) => {
+                if !dir_entry.file_type.is_dir() {
+                    file_cnt += 1;
+                    if max_file_cnt > 0 && file_cnt > max_file_cnt {
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                // H3: outer iterator yielded I/O error — forward as ScandirResult::Error
+                // (same pattern as process_read_dir callback at line 195).
+                if tx_outer.send(ScandirResult::Error((String::new(), e.to_string()))).is_err() {
+                    break;
+                }
             }
         }
     }
