@@ -22,6 +22,12 @@ pub struct Walk {
     iterating: bool,
 }
 
+impl Drop for Walk {
+    fn drop(&mut self) {
+        self.instance.stop();
+    }
+}
+
 #[pymethods]
 impl Walk {
     #[allow(clippy::too_many_arguments)]

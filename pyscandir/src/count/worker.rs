@@ -21,6 +21,12 @@ pub struct Count {
     busy: bool,
 }
 
+impl Drop for Count {
+    fn drop(&mut self) {
+        self.instance.stop();
+    }
+}
+
 #[pymethods]
 impl Count {
     #[allow(clippy::too_many_arguments)]

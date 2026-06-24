@@ -28,6 +28,12 @@ pub struct Scandir {
     entries: scandir::ScandirResults,
 }
 
+impl Drop for Scandir {
+    fn drop(&mut self) {
+        self.instance.stop();
+    }
+}
+
 #[pymethods]
 impl Scandir {
     #[allow(clippy::too_many_arguments)]
