@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use flume::{Receiver, Sender};
+use flume::{Receiver, RecvTimeoutError, Sender};
 use jwalk_meta::WalkDirGeneric;
 use parking_lot::Mutex;
 
@@ -426,7 +426,12 @@ impl Count {
                 if let Some(ref rx) = self.rx {
                     match rx.recv_timeout(remaining.min(Duration::from_millis(100))) {
                         Ok(s) => self.statistics = s,
-                        _ => {}
+                        Err(RecvTimeoutError::Timeout) => {}
+                        Err(RecvTimeoutError::Disconnected) => {
+                            // H2: worker thread panicked — channel disconnected.
+                            // Mark finished so outer busy()/finished() loops exit instead of spinning.
+                            self.finished.store(true, Ordering::Relaxed);
+                        }
                     }
                 }
             }
@@ -471,7 +476,12 @@ impl Count {
                             self.statistics = s;
                         }
                     }
-                    _ => {}
+                    Err(RecvTimeoutError::Timeout) => {}
+                    Err(RecvTimeoutError::Disconnected) => {
+                        // H2: worker thread panicked — channel disconnected.
+                        // Mark finished so outer busy()/finished() loops exit instead of spinning.
+                        self.finished.store(true, Ordering::Relaxed);
+                    }
                 }
             }
         }

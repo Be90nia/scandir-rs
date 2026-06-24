@@ -8,7 +8,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "bincode")]
 use bincode::error::EncodeError;
-use flume::{Receiver, Sender};
+use flume::{Receiver, RecvTimeoutError, Sender};
 
 use jwalk_meta::WalkDirGeneric;
 use parking_lot::Mutex;
@@ -648,7 +648,12 @@ impl Scandir {
                             }
                         }
                     }
-                    _ => {}
+                    Err(RecvTimeoutError::Timeout) => {}
+                    Err(RecvTimeoutError::Disconnected) => {
+                        // H2: worker thread panicked — channel disconnected.
+                        // Mark finished so outer busy()/finished() loops exit instead of spinning.
+                        self.finished.store(true, Ordering::Relaxed);
+                    }
                 }
             }
         }
