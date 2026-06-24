@@ -17,36 +17,3 @@ pub struct Options {
     pub follow_links: bool,
     pub return_type: ReturnType,
 }
-
-impl Options {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        root_path: PathBuf,
-        sorted: bool,
-        skip_hidden: bool,
-        max_depth: usize,
-        max_file_cnt: usize,
-        dir_include: Option<Vec<String>>,
-        dir_exclude: Option<Vec<String>>,
-        file_include: Option<Vec<String>>,
-        file_exclude: Option<Vec<String>>,
-        case_sensitive: bool,
-        follow_links: bool,
-        return_type: Option<ReturnType>,
-    ) -> Self {
-        Self {
-            root_path,
-            sorted,
-            skip_hidden,
-            max_depth,
-            max_file_cnt,
-            dir_include,
-            dir_exclude,
-            file_include,
-            file_exclude,
-            case_sensitive,
-            follow_links,
-            return_type: return_type.unwrap_or(ReturnType::Base),
-        }
-    }
-}

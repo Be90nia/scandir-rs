@@ -189,6 +189,10 @@ pub fn filter_direntry(
 
 #[inline]
 pub fn filter_dir(root_path_len: usize, dir_entry: &DirEntryType, filter_ref: &Filter) -> bool {
+    // ponytail: skip key construction entirely when no directory filter is configured
+    if filter_ref.dir_include.is_empty() && filter_ref.dir_exclude.is_empty() {
+        return true;
+    }
     let file_name = match dir_entry.file_name.to_str() {
         Some(s) => s,
         None => return true,
@@ -197,17 +201,14 @@ pub fn filter_dir(root_path_len: usize, dir_entry: &DirEntryType, filter_ref: &F
         Some(s) => s,
         None => return true,
     };
-    let full_len = parent_str.len() + 1 + file_name.len();
-    let mut key = String::with_capacity(full_len);
-    key.push_str(parent_str);
+    // ponytail: only the suffix past root_path_len is used; allocate just that.
+    let parent_suffix = parent_str.get(root_path_len..).unwrap_or("");
+    let mut key = String::with_capacity(parent_suffix.len() + 1 + file_name.len());
+    key.push_str(parent_suffix);
     key.push('/');
     key.push_str(file_name);
-    let key = match key.get(root_path_len..) {
-        Some(s) => s,
-        None => "",
-    };
-    if filter_direntry(key, &filter_ref.dir_exclude, filter_ref.options, false)
-        || !filter_direntry(key, &filter_ref.dir_include, filter_ref.options, true)
+    if filter_direntry(&key, &filter_ref.dir_exclude, filter_ref.options, false)
+        || !filter_direntry(&key, &filter_ref.dir_include, filter_ref.options, true)
     {
         return false;
     }

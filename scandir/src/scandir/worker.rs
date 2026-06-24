@@ -109,7 +109,7 @@ fn create_entry(
     };
     let entry: ScandirResult = match return_type {
         ReturnType::Base => ScandirResult::DirEntry(DirEntry {
-            path: path.clone(),
+            path,
             is_symlink: file_type.is_symlink(),
             is_dir: file_type.is_dir(),
             is_file,
@@ -119,7 +119,18 @@ fn create_entry(
             st_size,
         }),
         ReturnType::Ext => ScandirResult::DirEntryExt(DirEntryExt {
-            path,
+            // ponytail: Base branch above moves `path`, Ext branch must re-build it.
+            // Returned by the closure as the last statement, no shared use beyond this fn.
+            path: if path_str.len() > root_path_len {
+                let relative = &path_str[root_path_len..];
+                let mut p = String::with_capacity(relative.len() + 1 + file_name.len());
+                p.push_str(relative);
+                p.push('/');
+                p.push_str(file_name);
+                p
+            } else {
+                file_name.to_owned()
+            },
             is_symlink: file_type.is_symlink(),
             is_dir: file_type.is_dir(),
             is_file,
@@ -159,6 +170,7 @@ fn worker_thread(
 
     let max_file_cnt = options.max_file_cnt;
     let mut file_cnt = 0;
+    let stop_cb = stop.clone();
 
     for result in WalkDirGeneric::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
@@ -169,6 +181,9 @@ fn worker_thread(
         .read_metadata_ext(options.return_type == ReturnType::Ext)
         .read_hardlink_info(options.return_type == ReturnType::Ext)
         .process_read_dir(move |_, root_dir, _, children| {
+            if stop_cb.load(Ordering::Relaxed) {
+                return;
+            }
             if let Some(root_dir) = root_dir.to_str() {
                 if root_dir.len() + 1 < root_path_len {
                     return;
@@ -178,6 +193,7 @@ fn worker_thread(
             }
             for e in filter_children(children, &filter, root_path_len) {
                 if tx.send(ScandirResult::Error((String::new(), e))).is_err() {
+                    stop_cb.store(true, Ordering::Relaxed);
                     return;
                 }
             }
@@ -186,11 +202,13 @@ fn worker_thread(
                 match dir_entry_result {
                     Ok(dir_entry) => {
                         if tx.send(create_entry(root_path_len, &return_type, dir_entry)).is_err() {
+                            stop_cb.store(true, Ordering::Relaxed);
                             return;
                         }
                     }
                     Err(e) => {
                         if tx.send(ScandirResult::Error((String::new(), e.to_string()))).is_err() {
+                            stop_cb.store(true, Ordering::Relaxed);
                             return;
                         }
                     }
@@ -583,6 +601,7 @@ impl Scandir {
     pub fn results(&mut self, only_new: bool) -> ScandirResults {
         let mut results = ScandirResults::new();
         if let Some(ref rx) = self.rx {
+            results.results.reserve(rx.len());
             while let Ok(entry) = rx.try_recv() {
                 if let ScandirResult::Error(e) = entry {
                     results.errors.push(e);
@@ -605,6 +624,7 @@ impl Scandir {
     fn receive_all_timeout(&mut self, timeout: Duration) -> ScandirResults {
         let mut results = ScandirResults::new();
         if let Some(ref rx) = self.rx {
+            results.results.reserve(rx.len());
             // First, try non-blocking drain
             while let Ok(entry) = rx.try_recv() {
                 match entry {

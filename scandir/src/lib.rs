@@ -31,4 +31,4 @@ pub use count::{Count, Statistics};
 pub mod scandir;
 pub use scandir::{Scandir, ScandirResult, ScandirResults};
 pub mod walk;
-pub use walk::{Walk, WalkEntry, WalkEntryExt, WalkResult};
+pub use walk::Walk;

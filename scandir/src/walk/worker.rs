@@ -24,12 +24,13 @@ use crate::{
 fn update_toc(dir_entry: &DirEntryType, toc: &mut Toc) {
     let file_type = dir_entry.file_type;
     let key = dir_entry.file_name.to_string_lossy().into_owned();
-    if file_type.is_symlink() {
-        toc.symlinks.push(key);
+    // ponytail: is_file first — most common case, reduces branch misprediction
+    if file_type.is_file() {
+        toc.files.push(key);
     } else if file_type.is_dir() {
         toc.dirs.push(key);
-    } else if file_type.is_file() {
-        toc.files.push(key);
+    } else if file_type.is_symlink() {
+        toc.symlinks.push(key);
     } else {
         toc.other.push(key);
     }
@@ -49,18 +50,24 @@ fn worker_thread(
         let mut toc = Toc::new();
 
         update_toc(&dir_entry, &mut toc);
-        let _ = tx.send(("".to_owned(), toc));
+        if tx.send(("".to_owned(), toc)).is_err() {
+            stop.store(true, Ordering::Relaxed);
+        }
         return;
     }
 
     let max_file_cnt = options.max_file_cnt;
     let mut file_cnt = 0;
+    let stop_cb = stop.clone();
     for result in WalkDirGeneric::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
         .follow_links(options.follow_links)
         .sort(options.sorted)
         .max_depth(options.max_depth)
         .process_read_dir(move |_, root_dir, _, children| {
+            if stop_cb.load(Ordering::Relaxed) {
+                return;
+            }
             let root_dir = root_dir.to_str();
             if root_dir.is_none() {
                 return;
@@ -81,10 +88,13 @@ fn worker_thread(
                     }
                 }
             });
-            if root_dir.len() > root_path_len {
-                let _ = tx.send((root_dir[root_path_len..].to_owned(), toc));
+            let msg = if root_dir.len() > root_path_len {
+                (root_dir[root_path_len..].to_owned(), toc)
             } else {
-                let _ = tx.send(("".to_owned(), toc));
+                (String::new(), toc)
+            };
+            if tx.send(msg).is_err() {
+                stop_cb.store(true, Ordering::Relaxed);
             }
         })
     {
@@ -103,7 +113,8 @@ fn worker_thread(
 }
 
 /// Direct mode worker: accumulates Toc results in-process, returns via JoinHandle.
-/// Eliminates channel overhead — zero additional memory for channel buffering.
+/// Eliminates channel overhead — results accumulate in a Vec guarded by a Mutex,
+/// which grows unbounded with directory size (caller-side bounded only by max_file_cnt).
 /// Uses Arc<Mutex<Vec>> to share results between process_read_dir callback and this function.
 fn worker_thread_direct(
     dir_entry: DirEntryType,
@@ -128,6 +139,7 @@ fn worker_thread_direct(
     let results: Arc<parking_lot::Mutex<(Vec<(String, Toc)>, Vec<String>)>> =
         Arc::new(parking_lot::Mutex::new((Vec::new(), Vec::new())));
     let results_clone = results.clone();
+    let stop_cb = stop.clone();
 
     for result in WalkDirGeneric::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
@@ -135,6 +147,9 @@ fn worker_thread_direct(
         .sort(options.sorted)
         .max_depth(options.max_depth)
         .process_read_dir(move |_, root_dir, _, children| {
+            if stop_cb.load(Ordering::Relaxed) {
+                return;
+            }
             let root_dir_str = root_dir.to_str();
             if root_dir_str.is_none() {
                 return;
@@ -340,6 +355,9 @@ impl Walk {
     }
 
     pub fn clear(&mut self) {
+        if self.busy() {
+            return;
+        }
         self.entries.clear();
         self.has_errors = false;
         *self.duration.lock() = 0.0;
@@ -384,6 +402,7 @@ impl Walk {
     fn receive_all(&mut self) -> Vec<(String, Toc)> {
         let mut entries = Vec::new();
         if let Some(ref rx) = self.rx {
+            entries.reserve(rx.len());
             while let Ok(entry) = rx.try_recv() {
                 if !entry.1.errors.is_empty() {
                     self.has_errors = true;
@@ -398,33 +417,24 @@ impl Walk {
     /// then drains all available results from the channel.
     /// Returns an empty Vec if timeout expires before any data arrives.
     fn receive_all_timeout(&mut self, timeout: Duration) -> Vec<(String, Toc)> {
-        let mut entries = Vec::new();
+        // Fast path: drain any immediately-available results.
+        let mut entries = self.receive_all();
+        if !entries.is_empty() {
+            return entries;
+        }
         if let Some(ref rx) = self.rx {
-            // First, try non-blocking drain
-            while let Ok(entry) = rx.try_recv() {
-                if !entry.1.errors.is_empty() {
-                    self.has_errors = true;
-                }
-                entries.push(entry);
-            }
-            // If nothing available and worker still busy, wait for first result
-            if entries.is_empty() {
-                match rx.recv_timeout(timeout) {
-                    Ok(entry) => {
-                        if !entry.1.errors.is_empty() {
-                            self.has_errors = true;
-                        }
-                        entries.push(entry);
-                        // Drain remaining
-                        while let Ok(entry) = rx.try_recv() {
-                            if !entry.1.errors.is_empty() {
-                                self.has_errors = true;
-                            }
-                            entries.push(entry);
-                        }
+            // Channel empty — wait for the first result, then drain again.
+            match rx.recv_timeout(timeout) {
+                Ok(entry) => {
+                    if !entry.1.errors.is_empty() {
+                        self.has_errors = true;
                     }
-                    _ => {}
+                    entries.push(entry);
+                    // Drain remaining non-blocking.
+                    let extra = self.receive_all();
+                    entries.extend(extra);
                 }
+                _ => {}
             }
         }
         entries
@@ -574,7 +584,6 @@ impl Walk {
                 e.1.errors
                     .iter()
                     .map(|err| (e.0.clone(), err.to_string()))
-                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>()
     }

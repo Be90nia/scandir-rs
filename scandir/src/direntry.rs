@@ -5,6 +5,16 @@ use bincode::error::EncodeError;
 #[cfg(feature = "speedy")]
 use speedy::{Readable, Writable};
 
+// ponytail: shared conversion for all ctime/mtime/atime variants.
+#[inline]
+fn system_time_to_f64(t: Option<SystemTime>) -> f64 {
+    let duration = t
+        .unwrap_or(UNIX_EPOCH)
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_else(|_err| Duration::new(0, 0));
+    (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+}
+
 #[cfg_attr(feature = "speedy", derive(Readable, Writable))]
 #[cfg_attr(
     any(feature = "bincode", feature = "json"),
@@ -25,32 +35,17 @@ pub struct DirEntry {
 impl DirEntry {
     #[inline]
     pub fn ctime(&self) -> f64 {
-        let duration = self
-            .st_ctime
-            .unwrap_or(UNIX_EPOCH)
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_err| Duration::new(0, 0));
-        (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+        system_time_to_f64(self.st_ctime)
     }
 
     #[inline]
     pub fn mtime(&self) -> f64 {
-        let duration = self
-            .st_mtime
-            .unwrap_or(UNIX_EPOCH)
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_err| Duration::new(0, 0));
-        (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+        system_time_to_f64(self.st_mtime)
     }
 
     #[inline]
     pub fn atime(&self) -> f64 {
-        let duration = self
-            .st_atime
-            .unwrap_or(UNIX_EPOCH)
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_err| Duration::new(0, 0));
-        (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+        system_time_to_f64(self.st_atime)
     }
 
     #[cfg(feature = "speedy")]
@@ -111,32 +106,17 @@ pub struct DirEntryExt {
 impl DirEntryExt {
     #[inline]
     pub fn ctime(&self) -> f64 {
-        let duration = self
-            .st_ctime
-            .unwrap_or(UNIX_EPOCH)
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_err| Duration::new(0, 0));
-        (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+        system_time_to_f64(self.st_ctime)
     }
 
     #[inline]
     pub fn mtime(&self) -> f64 {
-        let duration = self
-            .st_mtime
-            .unwrap_or(UNIX_EPOCH)
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_err| Duration::new(0, 0));
-        (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+        system_time_to_f64(self.st_mtime)
     }
 
     #[inline]
     pub fn atime(&self) -> f64 {
-        let duration = self
-            .st_atime
-            .unwrap_or(UNIX_EPOCH)
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_err| Duration::new(0, 0));
-        (duration.as_secs() as f64) + (duration.subsec_nanos() as f64) * 1e-9
+        system_time_to_f64(self.st_atime)
     }
 
     #[cfg(feature = "speedy")]

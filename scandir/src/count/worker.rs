@@ -92,7 +92,11 @@ fn count_thread(
             } else {
                 return;
             }
-            filter_errors_clone.lock().extend(filter_children(children, &filter, root_path_len));
+            // ponytail: filter outside the lock, only acquire when we have errors to push
+            let errs = filter_children(children, &filter, root_path_len);
+            if !errs.is_empty() {
+                filter_errors_clone.lock().extend(errs);
+            }
         })
     {
         if stop.load(Ordering::Relaxed) {
@@ -340,6 +344,9 @@ impl Count {
     }
 
     pub fn clear(&mut self) {
+        if self.busy() {
+            return;
+        }
         self.statistics.clear();
         *self.duration.lock() = 0.0;
     }
