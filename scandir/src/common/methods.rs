@@ -22,7 +22,7 @@ pub fn check_and_expand_path<P: AsRef<Path>>(path_str: P) -> Result<PathBuf, Err
     })?;
 
     #[cfg(unix)]
-    let path_result = fs::canonicalize(expanduser(path_utf8).unwrap());
+    let path_result = fs::canonicalize(expanduser(path_utf8).unwrap_or_else(|_| PathBuf::from(path_utf8)));
     #[cfg(not(unix))]
     let path_result = fs::canonicalize(path_ref);
     let path = match path_result {
