@@ -28,12 +28,9 @@ impl Toc {
         }
     }
 
-    pub fn clear(&mut self) {
-        self.dirs.clear();
-        self.files.clear();
-        self.symlinks.clear();
-        self.other.clear();
-        self.errors.clear();
+    /// 以 move 方式从 owned Toc 构造，供绑定层消除深拷贝。
+    pub fn from_owned(toc: Toc) -> Self {
+        toc
     }
 
     pub fn dirs(&self) -> Vec<String> {
@@ -65,6 +62,15 @@ impl Toc {
     }
 
     pub fn extend(&mut self, root_dir: &str, other: &Toc) {
+        // ponytail: 空前缀时跳过无意义的 String 拼接，直接 clone
+        if root_dir.is_empty() {
+            self.dirs.extend(other.dirs.iter().cloned());
+            self.files.extend(other.files.iter().cloned());
+            self.symlinks.extend(other.symlinks.iter().cloned());
+            self.other.extend(other.other.iter().cloned());
+            self.errors.extend(other.errors.iter().cloned());
+            return;
+        }
         let root_len = root_dir.len();
         let join_path = |x: &str| -> String {
             let mut path = String::with_capacity(root_len + 1 + x.len());

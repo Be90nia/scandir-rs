@@ -116,13 +116,13 @@ impl Walk {
                 let duration = Duration::from_secs_f64(secs);
                 let result = py.detach(|| self.instance.collect_timeout(duration))?;
                 match result {
-                    Some(toc) => Ok(Some(Toc::from(&toc))),
+                    Some(toc) => Ok(Some(Toc::from_owned(toc))),
                     None => Ok(None),
                 }
             }
             _ => {
                 let toc = py.detach(|| self.instance.collect())?;
-                Ok(Some(Toc::from(&toc)))
+                Ok(Some(Toc::from_owned(toc)))
             }
         }
     }
@@ -147,7 +147,7 @@ impl Walk {
         for result in self.instance.results(only_new.unwrap_or(false)) {
             results.push((
                 result.0,
-                Py::new(py, Toc::from(&result.1)).unwrap().into_py_any(py)?,
+                Py::new(py, Toc::from_owned(result.1))?.into_py_any(py)?,
             ));
         }
         Ok(results)
@@ -237,10 +237,9 @@ impl Walk {
         _value: Option<&Bound<PyAny>>,
         _traceback: Option<&Bound<PyAny>>,
     ) -> PyResult<bool> {
-        if !self.instance.stop() {
-            return Ok(false);
-        }
-        self.instance.join();
+        // stop() 内部已 take+join 线程；返回 false 仅表示线程本来就没在跑，无需再 join。
+        let _ = self.instance.stop();
+        self.iterating = false;
         match ty {
             Some(ty) => Python::attach(|py| ty.eq(py.get_type::<PyValueError>())),
             None => Ok(false),

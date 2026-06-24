@@ -79,7 +79,11 @@ impl Count {
     }
 
     pub fn clear(&mut self) {
+        if self.instance.busy() {
+            return;
+        }
         self.instance.clear();
+        self.busy = false;
     }
 
     pub fn start(&mut self) -> PyResult<()> {
@@ -110,13 +114,13 @@ impl Count {
                 let duration = Duration::from_secs_f64(secs);
                 let result = py.detach(|| self.instance.collect_timeout(duration))?;
                 match result {
-                    Some(statistics) => Ok(Some(Py::new(py, Statistics::from(&statistics)).unwrap().into_any())),
+                    Some(statistics) => Ok(Some(Py::new(py, Statistics::from_owned(statistics))?.into_any())),
                     None => Ok(None),
                 }
             }
             _ => {
                 let results = py.detach(|| self.instance.collect())?;
-                Ok(Some(Py::new(py, Statistics::from(&results)).unwrap().into_any()))
+                Ok(Some(Py::new(py, Statistics::from_owned(results))?.into_any()))
             }
         }
     }
@@ -126,7 +130,7 @@ impl Count {
     }
 
     pub fn results(&mut self, py: Python) -> Py<PyAny> {
-        Py::new(py, Statistics::from(&self.instance.results()))
+        Py::new(py, Statistics::from_owned(self.instance.results()))
             .unwrap()
             .into_any()
     }
@@ -152,7 +156,7 @@ impl Count {
 
     #[pyo3(signature = (duration=None))]
     fn as_dict(&mut self, duration: Option<bool>, py: Python) -> PyResult<Py<PyAny>> {
-        Statistics::from(&self.instance.results()).as_dict(duration, py)
+        Statistics::from_owned(self.instance.results()).as_dict(duration, py)
     }
 
     #[cfg(feature = "speedy")]
@@ -201,10 +205,9 @@ impl Count {
         _value: Option<&Bound<PyAny>>,
         _traceback: Option<&Bound<PyAny>>,
     ) -> PyResult<bool> {
-        if !self.instance.stop() {
-            return Ok(false);
-        }
-        self.instance.join();
+        // stop() 内部已 take+join 线程；返回 false 仅表示线程本来就没在跑，无需再 join。
+        let _ = self.instance.stop();
+        self.busy = false;
         match ty {
             Some(ty) => Python::attach(|py| ty.eq(py.get_type::<PyValueError>())),
             None => Ok(false),
@@ -212,7 +215,8 @@ impl Count {
     }
 
     fn __iter__(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        if slf.busy {
+        // 用 instance.busy() 替代本地 busy 标志，避免 break 后本地标志卡死。
+        if slf.instance.busy() {
             return Err(PyRuntimeError::new_err("Busy"));
         }
         slf.instance.start()?;
@@ -231,7 +235,7 @@ impl Count {
             self.busy = false;
         }
         Ok(Some(
-            Py::new(py, Statistics::from(&self.instance.results()))
+            Py::new(py, Statistics::from_owned(self.instance.results()))
                 .unwrap()
                 .into_any(),
         ))

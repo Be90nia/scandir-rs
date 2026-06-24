@@ -38,6 +38,11 @@ impl Statistics {
         }
     }
 
+    /// 以 move 方式从 owned Statistics 构造，供绑定层消除深拷贝。
+    pub fn from_owned(s: Statistics) -> Self {
+        s
+    }
+
     pub fn clear(&mut self) {
         self.dirs = 0;
         self.files = 0;

@@ -184,15 +184,15 @@ impl Scandir {
     pub fn as_dict(&mut self, only_new: Option<bool>, py: Python) -> PyResult<Py<PyAny>> {
         let pyresults = PyDict::new(py);
         let entries = self.instance.results(only_new.unwrap_or(true));
-        for entry in entries.results.iter() {
+        for entry in entries.results.into_iter() {
             let _ = match entry {
                 ScandirResult::DirEntry(e) => {
                     let path = e.path.clone();
-                    pyresults.set_item(path, Py::new(py, DirEntry::from_owned(e.clone())).unwrap().into_any())
+                    pyresults.set_item(path, Py::new(py, DirEntry::from_owned(e))?.into_any())
                 }
                 ScandirResult::DirEntryExt(e) => {
                     let path = e.path.clone();
-                    pyresults.set_item(path, Py::new(py, DirEntryExt::from_owned(e.clone())).unwrap().into_any())
+                    pyresults.set_item(path, Py::new(py, DirEntryExt::from_owned(e))?.into_any())
                 }
                 ScandirResult::Error((path, e)) => pyresults.set_item(path, e),
             };
@@ -274,10 +274,8 @@ impl Scandir {
         _value: Option<&Bound<PyAny>>,
         _traceback: Option<&Bound<PyAny>>,
     ) -> PyResult<bool> {
-        if !self.instance.stop() {
-            return Ok(false);
-        }
-        self.instance.join();
+        // stop() 内部已 take+join 线程；返回 false 仅表示线程本来就没在跑，无需再 join。
+        let _ = self.instance.stop();
         match ty {
             Some(ty) => Python::attach(|py| ty.eq(py.get_type::<PyValueError>())),
             None => Ok(false),
@@ -298,10 +296,10 @@ impl Scandir {
             if let Some(entry) = self.entries.results.pop() {
                 match entry {
                     ScandirResult::DirEntry(e) => {
-                        return Ok(Some(Py::new(py, DirEntry::from(&e)).unwrap().into_any()));
+                        return Ok(Some(Py::new(py, DirEntry::from_owned(e)).unwrap().into_any()));
                     }
                     ScandirResult::DirEntryExt(e) => {
-                        return Ok(Some(Py::new(py, DirEntryExt::from(&e)).unwrap().into_any()));
+                        return Ok(Some(Py::new(py, DirEntryExt::from_owned(e)).unwrap().into_any()));
                     }
                     ScandirResult::Error(error) => {
                         return Ok(Some(error.into_py_any(py)?));

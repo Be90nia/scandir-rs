@@ -16,6 +16,10 @@ impl Statistics {
     pub fn from(entry: &scandir::Statistics) -> Self {
         Statistics(entry.clone())
     }
+
+    pub fn from_owned(entry: scandir::Statistics) -> Self {
+        Statistics(entry)
+    }
 }
 
 #[pymethods]
