@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::{path::Path, time::Duration};
 
 #[cfg(windows)]
@@ -27,18 +28,40 @@ fn create_test_data() -> String {
     if !kernel_path.exists() {
         // Download kernel
         println!("Downloading linux-5.9.tar.gz...");
-        let resp =
-            reqwest::blocking::get("https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.tar.gz")
-                .expect("request failed");
-        let body = resp.text().expect("body invalid");
+        // ponytail: dev-only HTTPS kernel.org 下载，加固超时 + 大小上限（zip-bomb / 慢速攻击）
+        const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024; // 2 GB
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(300))
+            .build()
+            .expect("client build failed");
+        let resp = client
+            .get("https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.9.tar.gz")
+            .send()
+            .expect("request failed");
+        if !resp.status().is_success() {
+            panic!("download failed: HTTP {}", resp.status());
+        }
+        if let Some(len) = resp.content_length()
+            && len > MAX_DOWNLOAD_BYTES
+        {
+            panic!("download too large: {len} bytes (limit {MAX_DOWNLOAD_BYTES})");
+        }
         let mut out = std::fs::File::create(&kernel_path).expect("failed to create file");
-        std::io::copy(&mut body.as_bytes(), &mut out).expect("failed to copy content");
+        // take() 流式 + 上限：替代 resp.text() 一次性载入，并阻断 Content-Length 与实际不符的放大
+        let mut limited = resp.take(MAX_DOWNLOAD_BYTES + 1);
+        let copied = std::io::copy(&mut limited, &mut out).expect("failed to copy content");
+        if copied > MAX_DOWNLOAD_BYTES {
+            panic!("download exceeded {MAX_DOWNLOAD_BYTES} bytes (got at least {copied})");
+        }
     }
     if !linux_dir.exists() {
         println!("Extracting linux-5.9.tar.gz...");
+        const MAX_EXTRACT_BYTES: u64 = 20 * 1024 * 1024 * 1024; // 20 GB
         let tar_gz = std::fs::File::open(&kernel_path).unwrap();
         let tar = flate2::read::GzDecoder::new(tar_gz);
-        let mut archive = tar::Archive::new(tar);
+        // ponytail: 限制解压总字节，阻断 tar-bomb
+        let limited = tar.take(MAX_EXTRACT_BYTES);
+        let mut archive = tar::Archive::new(limited);
         archive.unpack(&linux_dir).unwrap();
     }
     linux_dir.to_str().unwrap().to_string()

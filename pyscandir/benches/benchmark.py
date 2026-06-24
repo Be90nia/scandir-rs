@@ -37,6 +37,7 @@ import sys
 import json
 import timeit
 import platform
+import subprocess
 from typing import Dict
 
 import psutil
@@ -93,10 +94,20 @@ def CreateTestData():
     if not os.path.exists(LINUX_DIR):
         print("Extracting linux-5.9.tar.gz...")
         os.makedirs(LINUX_DIR)
-        # cmdLine = f"tar xzf {LINUX_KERNEL_ARCHIVE} -C {LINUX_DIR}"
-        cmdLine = f"7z x {LINUX_KERNEL_ARCHIVE} -so | 7z x -aoa -si -ttar -o{LINUX_DIR}"
-        print(f"Running: {cmdLine}")
-        os.system(cmdLine)
+        # ponytail: 路径为文件级常量，非用户输入；改 subprocess 避免 shell 注入向量
+        # 用 Popen 管道替代 os.system("7z x ... | 7z x ...")，显式 argv + 返回码检查
+        p1 = subprocess.Popen(["7z", "x", LINUX_KERNEL_ARCHIVE, "-so"], stdout=subprocess.PIPE)
+        try:
+            p2 = subprocess.Popen(
+                ["7z", "x", "-aoa", "-si", "-ttar", f"-o{LINUX_DIR}"],
+                stdin=p1.stdout,
+            )
+            p1.stdout.close()  # 允许 p1 在 p2 退出后收到 SIGPIPE
+            rc2 = p2.wait()
+        finally:
+            rc1 = p1.wait()
+        if rc1 != 0 or rc2 != 0:
+            raise RuntimeError(f"extraction failed: 7z[1] rc={rc1}, 7z[2] rc={rc2}")
     return tempDir
 
 

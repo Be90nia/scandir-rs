@@ -14,7 +14,6 @@ pub fn setup() -> TempDir {
     TempDir::new().unwrap()
 }
 
-#[allow(dead_code)]
 pub fn cleanup(temp_dir: TempDir) -> Result<(), Error> {
     temp_dir.close()
 }
