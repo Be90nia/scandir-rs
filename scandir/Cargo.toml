@@ -1,6 +1,6 @@
 [package]
 name = "scandir"
-version = "3.0.6"
+version = "3.0.7"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
 description = "A fast file tree scanner written in Rust"
 edition = "2024"
@@ -16,7 +16,7 @@ name = "scandir"
 crate-type = ["lib"]
 
 [dependencies]
-jwalk-meta = { git = "https://github.com/Be90nia/jwalk-meta", rev = "a6bbc8fba8cf1952a4b5000c12acfc534dbf7a4f" }
+jwalk-meta = { git = "https://github.com/Be90nia/jwalk-meta", rev = "2ef58fec0688cb3535a8b8e200dfead552bc056d" }
 parking_lot = "0.12"
 
 flume = "0.12.0"

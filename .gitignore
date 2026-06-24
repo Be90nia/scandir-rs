@@ -21,6 +21,7 @@ pyscandir/poetry.lock
 .omo/
 graphify-out/
 bench_*.py
+/test_memory.py
 
 # Beads / Dolt files (added by bd init)
 .dolt/

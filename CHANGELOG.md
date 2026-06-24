@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.7] - 2026-06-24
+
+### Fixed
+
+- `Walk.collect()` / `Scandir.collect()` no longer panic on `Arc::try_unwrap` when jwalk-meta iterator retains the `process_read_dir` closure (P0 regression introduced in 3.0.5). Replaced with `lock+take`.
+- `Walk::has_errors()` returned inverted value (had `!` prefix) — returns correct value now.
+- Non-UTF-8 root path and filenames no longer panic; return `Err` / use `to_string_lossy` fallback.
+- `Count.__next__` releases GIL via `py.detach` while waiting for worker progress (was busy-waiting).
+- `Drop` impl added on pyscandir side to signal worker thread stop on GC, preventing thread leak.
+- `methods.rs::check_and_expand_path`: `expanduser().unwrap()` panic on Unix when HOME unset — falls back to original path (H1).
+- 4× `recv_timeout` sites split `RecvTimeoutError::Disconnected` vs `::Timeout`; worker panic no longer leaves `busy()` permanently true (H2).
+- 3× outer iterator `if let Ok()` silent I/O error drop — converted to explicit `match`, errors forwarded to channel/shared sink (H3).
+
+### Changed
+
+- Stored errors capped at 1000 to bound memory under DoS (M5).
+- `walk` dual `std::sync::Mutex` merged to single `parking_lot::Mutex` (no poisoning, lower contention).
+- jwalk-meta dependency updated `v1.0.6 → v1.0.7` (`rev a6bbc8fb → 2ef58fec`): fixes max-heap ordering bug + priority-queue Disconnected race window.
+
+### Performance
+
+- `collect()` runs in direct mode (worker thread accumulates in-process via `JoinHandle`), bypassing channel — eliminates SMB burst backpressure regression seen with bounded(4096) in 3.0.5.
+- pyscandir binding gains `from_owned` constructors — eliminates deep clones at the Rust/Python boundary.
+- `scandir` core: 20+ small optimizations (Vec prealloc, conditional locking, suffix-only allocation, etc.).
+- Streaming channel bounded(4096) to limit backlog memory growth.
+
+
 ## [2.9.9] - 2026-05-26
 
 ### Fixed
