@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING** (Rust API only, Python unaffected): `scandir::Scandir::collect()` return type `ScandirResults` → `Arc<ScandirResults>`. Rust crate consumers must update.
 - **BREAKING** (Rust API only): `pyscandir::ScandirResults::inner_mut()` removed (zero external callers; cdylib does not export Rust API).
+- jwalk-meta dependency updated `v1.0.7 → v1.0.8` (`rev 2ef58fec → 485a8f62`): bench verified no regression (Scandir.collect -5.6%, Walk.iter -4.8%).
 
 ## [3.0.7] - 2026-06-24
 
