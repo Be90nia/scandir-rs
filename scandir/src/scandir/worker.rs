@@ -234,9 +234,9 @@ fn worker_thread_direct(
     let mut file_cnt = 0;
     let mut entries = ScandirResults::new();
 
-    // Collect filter errors via Arc<Mutex> (shared between callback and main loop)
-    let filter_errors: Arc<std::sync::Mutex<Vec<String>>> =
-        Arc::new(std::sync::Mutex::new(Vec::new()));
+    // Collect filter errors via Arc<parking_lot::Mutex> (no poisoning)
+    let filter_errors: Arc<parking_lot::Mutex<Vec<String>>> =
+        Arc::new(parking_lot::Mutex::new(Vec::new()));
     let filter_errors_clone = filter_errors.clone();
 
     for result in WalkDirGeneric::new(&options.root_path)
@@ -257,9 +257,7 @@ fn worker_thread_direct(
             }
             let errs = filter_children(children, &filter, root_path_len);
             if !errs.is_empty() {
-                if let Ok(mut guard) = filter_errors_clone.lock() {
-                    guard.extend(errs);
-                }
+                filter_errors_clone.lock().extend(errs);
             }
             // Only filter children here — do NOT send through channel
             // The outer for loop will yield each DirEntry
@@ -285,12 +283,11 @@ fn worker_thread_direct(
     }
 
     // Merge filter errors collected in callback
-    if let Ok(mut guard) = filter_errors.lock() {
-        let errs: Vec<String> = guard.drain(..).collect();
-        entries
-            .errors
-            .extend(errs.into_iter().map(|e| (String::new(), e)));
-    }
+    let mut guard = filter_errors.lock();
+    let errs: Vec<String> = guard.drain(..).collect();
+    entries
+        .errors
+        .extend(errs.into_iter().map(|e| (String::new(), e)));
 
     entries
 }

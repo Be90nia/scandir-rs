@@ -118,15 +118,12 @@ fn worker_thread_direct(
     let max_file_cnt = options.max_file_cnt;
     let mut file_cnt = 0;
 
-    // Shared results vector — callback pushes, we read after iteration completes
-    let entries: Arc<std::sync::Mutex<Vec<(String, Toc)>>> =
-        Arc::new(std::sync::Mutex::new(Vec::new()));
-    let entries_clone = entries.clone();
-
-    // Collect filter errors separately
-    let filter_errors: Arc<std::sync::Mutex<Vec<String>>> =
-        Arc::new(std::sync::Mutex::new(Vec::new()));
-    let filter_errors_clone = filter_errors.clone();
+    // Entries + filter errors share one lock to halve contention on the
+    // rayon-parallel process_read_dir callback. parking_lot::Mutex has no
+    // poisoning, so locks return a guard directly.
+    let results: Arc<parking_lot::Mutex<(Vec<(String, Toc)>, Vec<String>)>> =
+        Arc::new(parking_lot::Mutex::new((Vec::new(), Vec::new())));
+    let results_clone = results.clone();
 
     for result in WalkDirGeneric::new(&options.root_path)
         .skip_hidden(options.skip_hidden)
@@ -143,11 +140,6 @@ fn worker_thread_direct(
                 return;
             }
             let errs = filter_children(children, &filter, root_path_len);
-            if !errs.is_empty() {
-                if let Ok(mut guard) = filter_errors_clone.lock() {
-                    guard.extend(errs);
-                }
-            }
             let mut toc = Toc::new();
             children.iter_mut().for_each(|dir_entry_result| {
                 match dir_entry_result {
@@ -160,9 +152,12 @@ fn worker_thread_direct(
             } else {
                 String::new()
             };
-            if let Ok(mut guard) = entries_clone.lock() {
-                guard.push((key, toc));
+            // Single lock — push entries and filter errors together
+            let mut guard = results_clone.lock();
+            if !errs.is_empty() {
+                guard.1.extend(errs);
             }
+            guard.0.push((key, toc));
         })
     {
         if stop.load(Ordering::Relaxed) {
@@ -178,27 +173,21 @@ fn worker_thread_direct(
         }
     }
 
-    // Merge filter errors into the root Toc
-    if let Ok(mut guard) = filter_errors.lock() {
-        if !guard.is_empty() {
-            let errs: Vec<String> = guard.drain(..).collect();
-            if let Ok(mut entries_guard) = entries.lock() {
-                // Add errors to the first Toc entry (root), or create one
-                if let Some(first) = entries_guard.first_mut() {
-                    first.1.errors.extend(errs);
-                } else {
-                    let mut toc = Toc::new();
-                    toc.errors.extend(errs);
-                    entries_guard.push((String::new(), toc));
-                }
-            }
+    // Merge filter errors into the root Toc, then take entries (single lock).
+    // Arc refcount may be >1: jwalk-meta's iterator may retain the
+    // process_read_dir closure. Lock+take avoids try_unwrap assumption.
+    let mut guard = results.lock();
+    if !guard.1.is_empty() {
+        let errs: Vec<String> = std::mem::take(&mut guard.1);
+        if let Some(first) = guard.0.first_mut() {
+            first.1.errors.extend(errs);
+        } else {
+            let mut toc = Toc::new();
+            toc.errors.extend(errs);
+            guard.0.push((String::new(), toc));
         }
     }
-
-    // Lock + take avoids Arc::try_unwrap refcount assumption: jwalk-meta's
-    // iterator may retain the process_read_dir closure, leaving refcount > 1.
-    let mut guard = entries.lock().unwrap_or_else(|e| e.into_inner());
-    std::mem::take(&mut *guard)
+    std::mem::take(&mut guard.0)
 }
 
 #[derive(Debug)]
