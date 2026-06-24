@@ -74,7 +74,11 @@ fn worker_thread(
             children.iter_mut().for_each(|dir_entry_result| {
                 match dir_entry_result {
                     Ok(dir_entry) => update_toc(dir_entry, &mut toc),
-                    Err(e) => toc.errors.push(e.to_string()),
+                    Err(e) => {
+                        if toc.errors.len() < 1000 {
+                            toc.errors.push(e.to_string());
+                        }
+                    }
                 }
             });
             if root_dir.len() > root_path_len {
@@ -144,7 +148,11 @@ fn worker_thread_direct(
             children.iter_mut().for_each(|dir_entry_result| {
                 match dir_entry_result {
                     Ok(dir_entry) => update_toc(dir_entry, &mut toc),
-                    Err(e) => toc.errors.push(e.to_string()),
+                    Err(e) => {
+                        if toc.errors.len() < 1000 {
+                            toc.errors.push(e.to_string());
+                        }
+                    }
                 }
             });
             let key = if root_dir_str.len() > root_path_len {
@@ -154,7 +162,7 @@ fn worker_thread_direct(
             };
             // Single lock — push entries and filter errors together
             let mut guard = results_clone.lock();
-            if !errs.is_empty() {
+            if !errs.is_empty() && guard.1.len() < 1000 {
                 guard.1.extend(errs);
             }
             guard.0.push((key, toc));

@@ -187,10 +187,18 @@ fn count_thread(
                     break;
                 }
             }
-            Err(e) => statistics.errors.push(e.to_string()), // TODO: Need to fetch failed path from somewhere
+            Err(e) => {
+                if statistics.errors.len() < 1000 {
+                    statistics.errors.push(e.to_string());
+                }
+            } // TODO: Need to fetch failed path from somewhere
         }
     }
-    statistics.errors.extend(filter_errors.lock().drain(..));
+    if statistics.errors.len() < 1000 {
+        statistics
+            .errors
+            .extend(filter_errors.lock().drain(..).take(1000 - statistics.errors.len()));
+    }
     statistics.dirs = dirs;
     statistics.files = files;
     statistics.slinks = slinks;

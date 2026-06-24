@@ -277,7 +277,9 @@ fn worker_thread_direct(
                 }
             }
             Err(e) => {
-                entries.errors.push((String::new(), e.to_string()));
+                if entries.errors.len() < 1000 {
+                    entries.errors.push((String::new(), e.to_string()));
+                }
             }
         }
     }
@@ -285,9 +287,13 @@ fn worker_thread_direct(
     // Merge filter errors collected in callback
     let mut guard = filter_errors.lock();
     let errs: Vec<String> = guard.drain(..).collect();
-    entries
-        .errors
-        .extend(errs.into_iter().map(|e| (String::new(), e)));
+    if entries.errors.len() < 1000 {
+        entries.errors.extend(
+            errs.into_iter()
+                .take(1000 - entries.errors.len())
+                .map(|e| (String::new(), e)),
+        );
+    }
 
     entries
 }
