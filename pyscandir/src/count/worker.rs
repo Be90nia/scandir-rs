@@ -218,7 +218,10 @@ impl Count {
         if !self.busy {
             return Ok(None);
         }
-        if !self.instance.busy() {
+        if self.instance.busy() {
+            // Release GIL while waiting for worker progress (aiu)
+            py.detach(|| std::thread::sleep(Duration::from_millis(100)));
+        } else {
             self.busy = false;
         }
         Ok(Some(
