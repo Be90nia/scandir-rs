@@ -20,6 +20,10 @@ use crate::{
     create_filter, filter_children, get_root_path_len, start,
 };
 
+/// Accumulated (entries, filter_errors) shared across rayon workers.
+/// Wrapped in Arc<Mutex<..>> to halve contention vs separate locks.
+type WalkResults = Arc<Mutex<(Vec<(String, Toc)>, Vec<String>)>>;
+
 #[inline]
 fn update_toc(dir_entry: &DirEntryType, toc: &mut Toc) {
     let file_type = dir_entry.file_type;
@@ -150,8 +154,7 @@ fn worker_thread_direct(
     // Entries + filter errors share one lock to halve contention on the
     // rayon-parallel process_read_dir callback. parking_lot::Mutex has no
     // poisoning, so locks return a guard directly.
-    let results: Arc<parking_lot::Mutex<(Vec<(String, Toc)>, Vec<String>)>> =
-        Arc::new(parking_lot::Mutex::new((Vec::new(), Vec::new())));
+    let results: WalkResults = Arc::new(parking_lot::Mutex::new((Vec::new(), Vec::new())));
     let results_clone = results.clone();
     let stop_cb = stop.clone();
 

@@ -133,16 +133,15 @@ fn count_thread(
                         }
                         #[cfg(windows)]
                         {
-                            if let Some(nlink) = metadata.number_of_links {
-                                if nlink > 1 {
-                                    if let Some(ino) = metadata.file_index {
-                                        if file_indexes.contains(&ino) {
-                                            hlinks += 1;
-                                            files -= 1;
-                                        } else {
-                                            file_indexes.insert(ino);
-                                        }
-                                    }
+                            if let Some(nlink) = metadata.number_of_links
+                                && nlink > 1
+                                && let Some(ino) = metadata.file_index
+                            {
+                                if file_indexes.contains(&ino) {
+                                    hlinks += 1;
+                                    files -= 1;
+                                } else {
+                                    file_indexes.insert(ino);
                                 }
                             }
                         }

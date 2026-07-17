@@ -66,7 +66,7 @@ pub fn create_temp_file_tree(
             }
             #[cfg(windows)]
             for i in 1..=jcnt {
-                junction_point(&junc_dir, &dir.join(format!("junction{i}")))?;
+                junction_point(&junc_dir, dir.join(format!("junction{i}")))?;
             }
             #[cfg(unix)]
             for i in 1..=slinkcnt {
