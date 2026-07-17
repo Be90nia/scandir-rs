@@ -609,7 +609,7 @@ jobs:
   release:
     name: "Release"
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}  # release requires a tag; softprops/action-gh-release fails on workflow_dispatch
     needs: [ linux, musllinux, windows, macos, build-sdist, tests, cargo-clippy, cargo-fmt, linux-sse, windows-sse ]
     permissions:
       # Use to sign the release artifacts
