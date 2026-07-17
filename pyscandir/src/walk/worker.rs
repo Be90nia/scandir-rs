@@ -260,9 +260,7 @@ impl Walk {
         loop {
             if let Some((root_dir, toc)) = self.entries.pop_front() {
                 if self.return_type == ReturnType::Base {
-                    return Ok(Some(
-                        (root_dir, toc.dirs, toc.files).into_py_any(py)?,
-                    ));
+                    return Ok(Some((root_dir, toc.dirs, toc.files).into_py_any(py)?));
                 } else {
                     return Ok(Some(
                         (
@@ -278,9 +276,8 @@ impl Walk {
                 }
             } else {
                 // Event-driven wait: release GIL while waiting for results
-                let new_entries = py.detach(|| {
-                    self.instance.results_timeout(Duration::from_millis(100))
-                });
+                let new_entries =
+                    py.detach(|| self.instance.results_timeout(Duration::from_millis(100)));
                 if new_entries.is_empty() {
                     if !self.instance.busy() {
                         break;

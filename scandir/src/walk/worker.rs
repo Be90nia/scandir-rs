@@ -78,17 +78,18 @@ fn worker_thread(
                 return;
             }
             let mut toc = Toc::new();
-            toc.errors.extend(filter_children(children, &filter, root_path_len));
-            children.iter_mut().for_each(|dir_entry_result| {
-                match dir_entry_result {
+            toc.errors
+                .extend(filter_children(children, &filter, root_path_len));
+            children
+                .iter_mut()
+                .for_each(|dir_entry_result| match dir_entry_result {
                     Ok(dir_entry) => update_toc(dir_entry, &mut toc),
                     Err(e) => {
                         if toc.errors.len() < 1000 {
                             toc.errors.push(e.to_string());
                         }
                     }
-                }
-            });
+                });
             let msg = if root_dir.len() > root_path_len {
                 (root_dir[root_path_len..].to_owned(), toc)
             } else {
@@ -173,16 +174,16 @@ fn worker_thread_direct(
             }
             let errs = filter_children(children, &filter, root_path_len);
             let mut toc = Toc::new();
-            children.iter_mut().for_each(|dir_entry_result| {
-                match dir_entry_result {
+            children
+                .iter_mut()
+                .for_each(|dir_entry_result| match dir_entry_result {
                     Ok(dir_entry) => update_toc(dir_entry, &mut toc),
                     Err(e) => {
                         if toc.errors.len() < 1000 {
                             toc.errors.push(e.to_string());
                         }
                     }
-                }
-            });
+                });
             let key = if root_dir_str.len() > root_path_len {
                 root_dir_str[root_path_len..].to_owned()
             } else {
@@ -607,11 +608,7 @@ impl Walk {
     pub fn errors(&mut self, only_new: bool) -> ErrorsType {
         self.results(only_new)
             .iter()
-            .flat_map(|e| {
-                e.1.errors
-                    .iter()
-                    .map(|err| (e.0.clone(), err.to_string()))
-            })
+            .flat_map(|e| e.1.errors.iter().map(|err| (e.0.clone(), err.to_string())))
             .collect::<Vec<_>>()
     }
 

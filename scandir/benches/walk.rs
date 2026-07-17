@@ -1,10 +1,10 @@
 #![cfg_attr(windows, feature(windows_by_handle))]
 
+use std::io::Read;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 #[cfg(windows)]
 use std::os::windows::fs::MetadataExt;
-use std::io::Read;
 use std::{fs, path::Path, time::Duration};
 
 #[cfg(windows)]

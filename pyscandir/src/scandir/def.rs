@@ -5,8 +5,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3::types::PyDict;
 
-use std::sync::Arc;
 use crate::direntry::DirEntryExt;
+use std::sync::Arc;
 
 #[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
@@ -117,9 +117,11 @@ fn results_to_py(results: &[scandir::ScandirResult], py: Python) -> Vec<Py<PyAny
 
 fn result2py_inner(result: &scandir::ScandirResult, py: Python) -> Option<Py<PyAny>> {
     match result {
-        scandir::ScandirResult::DirEntry(e) => {
-            Some(Py::new(py, crate::direntry::DirEntry::from(e)).unwrap().into_any())
-        }
+        scandir::ScandirResult::DirEntry(e) => Some(
+            Py::new(py, crate::direntry::DirEntry::from(e))
+                .unwrap()
+                .into_any(),
+        ),
         scandir::ScandirResult::DirEntryExt(e) => {
             Some(Py::new(py, DirEntryExt::from(e)).unwrap().into_any())
         }
@@ -133,7 +135,6 @@ pub struct ScandirResults {
     inner: Arc<scandir::ScandirResults>,
 }
 
-
 impl ScandirResults {
     pub fn from_inner(inner: Arc<scandir::ScandirResults>) -> Self {
         ScandirResults { inner }
@@ -144,7 +145,6 @@ impl ScandirResults {
     }
 }
 
-
 #[pymethods]
 impl ScandirResults {
     #[getter]
@@ -154,22 +154,34 @@ impl ScandirResults {
 
     #[getter]
     fn dirs(&self, py: Python) -> Vec<Py<PyAny>> {
-        self.inner.dirs().filter_map(|r| result2py_inner(r, py)).collect()
+        self.inner
+            .dirs()
+            .filter_map(|r| result2py_inner(r, py))
+            .collect()
     }
 
     #[getter]
     fn files(&self, py: Python) -> Vec<Py<PyAny>> {
-        self.inner.files().filter_map(|r| result2py_inner(r, py)).collect()
+        self.inner
+            .files()
+            .filter_map(|r| result2py_inner(r, py))
+            .collect()
     }
 
     #[getter]
     fn symlinks(&self, py: Python) -> Vec<Py<PyAny>> {
-        self.inner.symlinks().filter_map(|r| result2py_inner(r, py)).collect()
+        self.inner
+            .symlinks()
+            .filter_map(|r| result2py_inner(r, py))
+            .collect()
     }
 
     #[getter]
     fn other(&self, py: Python) -> Vec<Py<PyAny>> {
-        self.inner.other().filter_map(|r| result2py_inner(r, py)).collect()
+        self.inner
+            .other()
+            .filter_map(|r| result2py_inner(r, py))
+            .collect()
     }
 
     #[getter]

@@ -1,6 +1,6 @@
 use std::io::ErrorKind;
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 
 use pyo3::exceptions::{PyException, PyFileNotFoundError, PyRuntimeError, PyValueError};
 use pyo3::types::{PyBytes, PyDict, PyType};
@@ -114,15 +114,17 @@ impl Scandir {
     }
 
     #[pyo3(signature = (timeout=None))]
-    pub fn collect(&mut self, timeout: Option<f64>, py: Python) -> PyResult<Option<PyScandirResults>> {
+    pub fn collect(
+        &mut self,
+        timeout: Option<f64>,
+        py: Python,
+    ) -> PyResult<Option<PyScandirResults>> {
         match timeout {
             Some(secs) if secs > 0.0 => {
                 let duration = Duration::from_secs_f64(secs);
                 let result = py.detach(|| self.instance.collect_timeout(duration))?;
                 match result {
-                    Some(entries) => {
-                Ok(Some(PyScandirResults::from_inner(Arc::new(entries))))
-                    }
+                    Some(entries) => Ok(Some(PyScandirResults::from_inner(Arc::new(entries)))),
                     None => Ok(None),
                 }
             }
@@ -297,10 +299,14 @@ impl Scandir {
             if let Some(entry) = self.entries.results.pop() {
                 match entry {
                     ScandirResult::DirEntry(e) => {
-                        return Ok(Some(Py::new(py, DirEntry::from_owned(e)).unwrap().into_any()));
+                        return Ok(Some(
+                            Py::new(py, DirEntry::from_owned(e)).unwrap().into_any(),
+                        ));
                     }
                     ScandirResult::DirEntryExt(e) => {
-                        return Ok(Some(Py::new(py, DirEntryExt::from_owned(e)).unwrap().into_any()));
+                        return Ok(Some(
+                            Py::new(py, DirEntryExt::from_owned(e)).unwrap().into_any(),
+                        ));
                     }
                     ScandirResult::Error(error) => {
                         return Ok(Some(error.into_py_any(py)?));
@@ -311,9 +317,7 @@ impl Scandir {
                 return Ok(Some(error.into_py_any(py)?));
             }
             // Event-driven wait: release GIL while waiting for results
-            let entries = py.detach(|| {
-                self.instance.results_timeout(Duration::from_millis(100))
-            });
+            let entries = py.detach(|| self.instance.results_timeout(Duration::from_millis(100)));
             if entries.is_empty() {
                 if !self.instance.busy() {
                     break;

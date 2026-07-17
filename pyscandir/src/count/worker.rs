@@ -114,13 +114,17 @@ impl Count {
                 let duration = Duration::from_secs_f64(secs);
                 let result = py.detach(|| self.instance.collect_timeout(duration))?;
                 match result {
-                    Some(statistics) => Ok(Some(Py::new(py, Statistics::from_owned(statistics))?.into_any())),
+                    Some(statistics) => Ok(Some(
+                        Py::new(py, Statistics::from_owned(statistics))?.into_any(),
+                    )),
                     None => Ok(None),
                 }
             }
             _ => {
                 let results = py.detach(|| self.instance.collect())?;
-                Ok(Some(Py::new(py, Statistics::from_owned(results))?.into_any()))
+                Ok(Some(
+                    Py::new(py, Statistics::from_owned(results))?.into_any(),
+                ))
             }
         }
     }

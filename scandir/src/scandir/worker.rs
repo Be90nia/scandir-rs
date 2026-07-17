@@ -199,22 +199,28 @@ fn worker_thread(
                 }
             }
             #[allow(clippy::needless_return)]
-            children.iter_mut().for_each(|dir_entry_result| {
-                match dir_entry_result {
+            children
+                .iter_mut()
+                .for_each(|dir_entry_result| match dir_entry_result {
                     Ok(dir_entry) => {
-                        if tx.send(create_entry(root_path_len, &return_type, dir_entry)).is_err() {
+                        if tx
+                            .send(create_entry(root_path_len, &return_type, dir_entry))
+                            .is_err()
+                        {
                             stop_cb.store(true, Ordering::Relaxed);
                             return;
                         }
                     }
                     Err(e) => {
-                        if tx.send(ScandirResult::Error((String::new(), e.to_string()))).is_err() {
+                        if tx
+                            .send(ScandirResult::Error((String::new(), e.to_string())))
+                            .is_err()
+                        {
                             stop_cb.store(true, Ordering::Relaxed);
                             return;
                         }
                     }
-                }
-            });
+                });
         })
     {
         if stop.load(Ordering::Relaxed) {
@@ -232,7 +238,10 @@ fn worker_thread(
             Err(e) => {
                 // H3: outer iterator yielded I/O error — forward as ScandirResult::Error
                 // (same pattern as process_read_dir callback at line 195).
-                if tx_outer.send(ScandirResult::Error((String::new(), e.to_string()))).is_err() {
+                if tx_outer
+                    .send(ScandirResult::Error((String::new(), e.to_string())))
+                    .is_err()
+                {
                     break;
                 }
             }

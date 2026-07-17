@@ -84,11 +84,13 @@ impl Toc {
         self.files.reserve(other.files.len());
         self.files.extend(other.files.iter().map(|x| join_path(x)));
         self.symlinks.reserve(other.symlinks.len());
-        self.symlinks.extend(other.symlinks.iter().map(|x| join_path(x)));
+        self.symlinks
+            .extend(other.symlinks.iter().map(|x| join_path(x)));
         self.other.reserve(other.other.len());
         self.other.extend(other.other.iter().map(|x| join_path(x)));
         self.errors.reserve(other.errors.len());
-        self.errors.extend(other.errors.iter().map(|x| join_path(x)));
+        self.errors
+            .extend(other.errors.iter().map(|x| join_path(x)));
     }
 
     #[cfg(feature = "speedy")]

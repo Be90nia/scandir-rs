@@ -17,21 +17,19 @@ use crate::{DirEntryType, Filter, Options};
 pub fn check_and_expand_path<P: AsRef<Path>>(path_str: P) -> Result<PathBuf, Error> {
     let path_ref = path_str.as_ref();
     // H2: reject non-UTF-8 paths early — valid on Unix but causes panics downstream
-    let path_utf8 = path_ref.to_str().ok_or_else(|| {
-        Error::new(ErrorKind::InvalidInput, "root path is not valid UTF-8")
-    })?;
+    let path_utf8 = path_ref
+        .to_str()
+        .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "root path is not valid UTF-8"))?;
 
     #[cfg(unix)]
-    let path_result = fs::canonicalize(expanduser(path_utf8).unwrap_or_else(|_| PathBuf::from(path_utf8)));
+    let path_result =
+        fs::canonicalize(expanduser(path_utf8).unwrap_or_else(|_| PathBuf::from(path_utf8)));
     #[cfg(not(unix))]
     let path_result = fs::canonicalize(path_ref);
     let path = match path_result {
         Ok(p) => {
             if !p.exists() {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    path_utf8.to_string(),
-                ));
+                return Err(Error::new(ErrorKind::NotFound, path_utf8.to_string()));
             }
             p
         }

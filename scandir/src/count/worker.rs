@@ -199,9 +199,12 @@ fn count_thread(
         }
     }
     if statistics.errors.len() < 1000 {
-        statistics
-            .errors
-            .extend(filter_errors.lock().drain(..).take(1000 - statistics.errors.len()));
+        statistics.errors.extend(
+            filter_errors
+                .lock()
+                .drain(..)
+                .take(1000 - statistics.errors.len()),
+        );
     }
     statistics.dirs = dirs;
     statistics.files = files;
@@ -465,7 +468,7 @@ impl Count {
                     }
                     true
                 }
-                _ => false
+                _ => false,
             };
             // If nothing available and worker busy, wait with timeout
             if !has_data {
