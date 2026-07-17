@@ -14,3 +14,8 @@ opt-level = 3
 
 [profile.release.build-override]
 opt-level = 3
+
+# Local development override: CI removes this section via
+# .github/scripts/strip_local_patch.py to fall back to the git dep below.
+[patch."https://github.com/Be90nia/jwalk-meta"]
+jwalk-meta = { path = "../jwalk-meta" }

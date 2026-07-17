@@ -65,6 +65,10 @@ jobs:
         with:
           lookup-only: true
 
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
+
       - name: "Cargo clippy"
         run: cargo clippy --all-targets --all-features -- -D warnings -W clippy::style -D clippy::perf
 
@@ -126,6 +130,10 @@ jobs:
       - name: "Run Ruff"
         run: |
           ruff check
+
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
 
       - name: "Run maturin (--release)"
         run: |
@@ -206,6 +214,10 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
 
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
+
       - name: "Build wheels"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
@@ -264,6 +276,10 @@ jobs:
         run: |
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
+
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
 
       - name: "Build wheels for older CPUs (SSE)"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -340,6 +356,10 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
 
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
+
       - name: "Build wheels"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
@@ -398,6 +418,10 @@ jobs:
         run: |
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
+
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
 
       - name: "Build wheels"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -458,6 +482,10 @@ jobs:
         run: |
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
+
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
 
       - name: "Build wheels for older CPUs (SSE)"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -523,6 +551,10 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
 
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
+
       - name: "Build wheels"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
@@ -551,6 +583,10 @@ jobs:
         run: |
           sed -i '/members = \["scandir", "pyscandir"\]/c\members = ["scandir"]\nexclude = ["pyscandir"]' Cargo.toml
           cat Cargo.toml
+
+      - name: "Use git jwalk-meta dependency on CI"
+        shell: bash
+        run: python3 .github/scripts/strip_local_patch.py
 
       - name: "Build sdist"
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
