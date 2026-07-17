@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- `Scandir.collect()` eliminates ~440k-entry deep clone by wrapping the `entries` field in `Arc<ScandirResults>` (H5 regression fix from 3.0.7). Bench (10-run median, 498k files): `Scandir.collect` **-6.4%**, `Scandir(Ext).collect` **-5.2%**, `Scandir.iter` no regression (-2.1%).
+- `Scandir.collect()` eliminates ~440k-entry deep clone by wrapping the `entries` field in
+  `Arc<ScandirResults>` (H5 regression fix from 3.0.7). Bench (10-run median, 498k files):
+  `Scandir.collect` **-6.4%**, `Scandir(Ext).collect` **-5.2%**, `Scandir.iter` no regression (-2.1%).
 
 ### Changed
 
@@ -42,7 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - pyscandir binding gains `from_owned` constructors — eliminates deep clones at the Rust/Python boundary.
 - `scandir` core: 20+ small optimizations (Vec prealloc, conditional locking, suffix-only allocation, etc.).
 - Streaming channel bounded(4096) to limit backlog memory growth.
-
 
 ## [2.9.9] - 2026-05-26
 
