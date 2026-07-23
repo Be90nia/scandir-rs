@@ -58,12 +58,12 @@ fn main() {
             match d.st_btime {
                 Some(t) => {
                     btime_ok += 1;
-                    if let (Ok(dur), Some(std_t)) = (t.duration_since(UNIX_EPOCH), std_btime) {
-                        if let Ok(std_dur) = std_t.duration_since(UNIX_EPOCH) {
-                            let skew = (dur.as_secs_f64() - std_dur.as_secs_f64()).abs();
-                            if skew > max_skew_secs {
-                                max_skew_secs = skew;
-                            }
+                    if let (Ok(dur), Some(std_t)) = (t.duration_since(UNIX_EPOCH), std_btime)
+                        && let Ok(std_dur) = std_t.duration_since(UNIX_EPOCH)
+                    {
+                        let skew = (dur.as_secs_f64() - std_dur.as_secs_f64()).abs();
+                        if skew > max_skew_secs {
+                            max_skew_secs = skew;
                         }
                     }
                 }
