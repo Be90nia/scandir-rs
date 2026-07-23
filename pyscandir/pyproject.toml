@@ -33,8 +33,6 @@ requires = ["setuptools", "wheel", "setuptools_rust", "maturin>=1.5.1"]
 build-backend = "maturin"
 
 [tool.maturin]
-bindings = "pyo3"
-manylinux = "2_34"
 manylinux = "2_34"
 strip = true
 module-name = "scandir_rs"

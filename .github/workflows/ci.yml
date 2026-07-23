@@ -227,7 +227,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
+          args: -b pyo3 ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           manylinux: auto
           working-directory: pyscandir
@@ -292,7 +292,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
+          args: -b pyo3 ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           manylinux: auto
           working-directory: pyscandir
@@ -369,7 +369,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter ${{ matrix.platform.interpreter }}
+          args: -b pyo3 --release --out dist --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           manylinux: musllinux_1_2
           working-directory: pyscandir
@@ -432,7 +432,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
+          args: -b pyo3 ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           working-directory: pyscandir
 
@@ -498,7 +498,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
+          args: -b pyo3 ${{ matrix.platform.maturin-args }} --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           working-directory: pyscandir
 
@@ -564,7 +564,7 @@ jobs:
         with:
           rust-toolchain: nightly
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter ${{ matrix.platform.interpreter }}
+          args: -b pyo3 --release --out dist --interpreter ${{ matrix.platform.interpreter }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }} # zizmor: ignore[cache-poisoning]
           working-directory: pyscandir
 
