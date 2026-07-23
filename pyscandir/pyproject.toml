@@ -1,6 +1,6 @@
 [project]
 name = "scandir-rs"
-version = "3.0.8"
+version = "3.0.9"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
 description = "A fast file tree scanner written in Rust"
 license = "MIT"
@@ -33,6 +33,8 @@ requires = ["setuptools", "wheel", "setuptools_rust", "maturin>=1.5.1"]
 build-backend = "maturin"
 
 [tool.maturin]
+bindings = "pyo3"
+manylinux = "2_34"
 manylinux = "2_34"
 strip = true
 module-name = "scandir_rs"
