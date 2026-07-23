@@ -30,6 +30,7 @@ fn create_entry(
     let mut st_ctime: Option<SystemTime> = None;
     let mut st_mtime: Option<SystemTime> = None;
     let mut st_atime: Option<SystemTime> = None;
+    let mut st_btime: Option<SystemTime> = None;
     let mut st_mode: u32 = 0;
     let mut st_ino: u64 = 0;
     let mut st_dev: u64 = 0;
@@ -53,7 +54,8 @@ fn create_entry(
     #[cfg(windows)]
     let st_rdev: u64 = 0;
     if let Some(ref metadata) = dir_entry.metadata {
-        st_ctime = metadata.created;
+        st_ctime = metadata.changed;
+        st_btime = metadata.created;
         st_mtime = metadata.modified;
         st_atime = metadata.accessed;
         st_size = metadata.size;
@@ -137,6 +139,7 @@ fn create_entry(
             st_ctime,
             st_mtime,
             st_atime,
+            st_btime,
             st_mode,
             st_ino,
             st_dev,

@@ -75,12 +75,16 @@ pub struct DirEntryExt {
     pub is_symlink: bool,
     pub is_dir: bool,
     pub is_file: bool,
-    /// Creation time in seconds as float
+    /// POSIX change time (inode metadata change); on Linux == Python os.stat().st_ctime, on Windows == creation time
     pub st_ctime: Option<SystemTime>,
     /// Modification time in seconds as float
     pub st_mtime: Option<SystemTime>,
     /// Access time in seconds as float
     pub st_atime: Option<SystemTime>,
+    /// Birth time (actual file creation time). None on filesystems/kernels without btime support
+    /// (ext3, FAT, kernel<4.11, musl target). Available on Linux gnu + kernel>=4.13 + statx
+    /// STATX_BTIME mask (CIFS nounix SMB2/3 supported via Steve French commit 6e70e26dc52b).
+    pub st_btime: Option<SystemTime>,
     /// Size of file / entry
     pub st_size: u64,
     /// File system block size
@@ -117,6 +121,11 @@ impl DirEntryExt {
     #[inline]
     pub fn atime(&self) -> f64 {
         system_time_to_f64(self.st_atime)
+    }
+
+    #[inline]
+    pub fn btime(&self) -> f64 {
+        system_time_to_f64(self.st_btime)
     }
 
     #[cfg(feature = "speedy")]

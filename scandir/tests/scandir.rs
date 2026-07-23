@@ -202,3 +202,46 @@ fn test_scandir_results_backward_compat() -> Result<(), Error> {
     );
     common::cleanup(temp_dir)
 }
+
+#[test]
+fn test_scandir_ctime_not_none() -> Result<(), Error> {
+    // Regression for Linux CIFS nounix bug: io_uring.rs requested only STATX_BASIC_STATS
+    // (omits STATX_BTIME) but old code filled st_ctime from stx_btime -> st_ctime was None.
+    // Now st_ctime comes from POSIX change time (stx_ctime, always filled by STATX_BASIC_STATS),
+    // and st_btime comes from stx_btime (filled when STATX_BTIME requested; None on fs/kernel
+    // without btime support like tmpfs/ext3). Windows: both fields come from creation_time.
+    use scandir::ScandirResult;
+    #[cfg(unix)]
+    let temp_dir = common::create_temp_file_tree(1, 1, 1, 0, 0, 0)?;
+    #[cfg(windows)]
+    let temp_dir = common::create_temp_file_tree(1, 1, 1, 0, 0)?;
+    let entries = Scandir::new(temp_dir.path(), Some(true))?
+        .return_type(ReturnType::Ext)
+        .collect()?;
+    assert_eq!(0, entries.errors.len(), "no scan errors expected");
+    let file_entry = entries
+        .files()
+        .find_map(|r| match r {
+            ScandirResult::DirEntryExt(d) if d.is_file => Some(d),
+            _ => None,
+        })
+        .expect("should have at least one regular file");
+    assert!(
+        file_entry.st_ctime.is_some(),
+        "st_ctime must not be None (regression: was None on Linux CIFS nounix)"
+    );
+    assert!(
+        file_entry.ctime() > 0.0,
+        "ctime must not be 0.0 (regression: was 0.0 on Linux CIFS nounix)"
+    );
+    // st_btime field exists and is callable (compile-time check).
+    // Value semantics: Some on Windows (creation_time always set); may be None on Linux tmpfs
+    // (no btime concept) but Some on ext4/CIFS nounix SMB2/3 with kernel>=4.13.
+    let _btime_secs: f64 = file_entry.btime();
+    #[cfg(windows)]
+    assert!(
+        file_entry.st_btime.is_some(),
+        "st_btime must not be None on Windows (creation_time is always set)"
+    );
+    common::cleanup(temp_dir)
+}
